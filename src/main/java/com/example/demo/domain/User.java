@@ -31,6 +31,9 @@ public class User {
 
     private String preferredTone; // 리마스터링 말투
 
+    @Enumerated(EnumType.STRING)
+    private RegistrationId registrationId; // LOCAL, KAKAO, GOOGLE 중 하나
+
     @Column(updatable = false)
     private LocalDateTime createdAt; //가입일
 
@@ -41,7 +44,7 @@ public class User {
 
     @Builder
     public User(String email, String password, String name, String disabilityType,
-                Integer cognitiveLevel, JobType jobType, String preferredTone) {
+                Integer cognitiveLevel, JobType jobType, String preferredTone, RegistrationId registrationId) {
         this.email = email;
         this.password = password;
         this.name = name;
@@ -49,6 +52,16 @@ public class User {
         this.cognitiveLevel = cognitiveLevel;
         this.jobType = jobType;
         this.preferredTone = preferredTone;
+        this.registrationId = registrationId;
+    }
+
+    public User updateName(String name) {
+        this.name = name;
+        return this;
+    }
+
+    public enum RegistrationId {
+        LOCAL, KAKAO, GOOGLE
     }
 
 }
