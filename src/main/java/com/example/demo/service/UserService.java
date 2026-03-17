@@ -56,9 +56,11 @@ public class UserService {
         }
 
         // 로그인 성공 시 토큰 생성
-        String token = jwtTokenProvider.createToken(user.getEmail());
+        String accessToken = jwtTokenProvider.createToken(user.getEmail());
 
-        return new LoginResponse(token, user.getEmail());
+        String refreshToken = accessToken;
+
+        return new LoginResponse(accessToken, refreshToken, user.getEmail());
 
     }
 
