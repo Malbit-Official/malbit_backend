@@ -8,13 +8,8 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class LoginResponse {
-    @JsonProperty("access_token")
+
     private String accessToken;
-
-    @JsonProperty("is_large_font")
-    private boolean isLargeFont;
-
     private String refreshToken;
 
-    private String email;
 }

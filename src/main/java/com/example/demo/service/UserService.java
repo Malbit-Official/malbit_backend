@@ -60,9 +60,7 @@ public class UserService {
 
         String refreshToken = accessToken;
 
-        return new LoginResponse(accessToken, refreshToken, user.getEmail());
-
-    }
+        return new LoginResponse(accessToken, refreshToken);    }
 
     /* 내 정보 조회 로직 */
     @Transactional(readOnly = true)
