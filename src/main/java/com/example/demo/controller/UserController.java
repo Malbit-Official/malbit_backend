@@ -5,6 +5,7 @@ import com.example.demo.dto.UserLoginResponse;
 import com.example.demo.dto.UserJoinRequest;
 import com.example.demo.dto.UserLoginRequest;
 import com.example.demo.dto.UserInfoResponse;
+import com.example.demo.service.EmailService;
 import com.example.demo.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,11 +17,23 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
+    private final EmailService emailService;
 
     /* 회원가입 API */
     @PostMapping("/join")
     public ResponseEntity<String> join(@RequestBody UserJoinRequest request) {
+
+        // 이메일 인증 여부 확인
+        if (!emailService.isVerified(request.getEmail())) {
+            return ResponseEntity.status(400).body("이메일 인증이 완료되지 않았습니다.");
+        }
+
+        // 인증되었다면 회원가입 로직 실행
         userService.join(request);
+
+        //  가입 완료 후 인증 기록 삭제
+        emailService.removeVerification(request.getEmail());
+
         return ResponseEntity.ok("회원가입 성공");
     }
 
