@@ -1,8 +1,9 @@
-// 사용자로부터 이메일 인증 요청을 받고, 서비스 계층을 호출아여 인증번호 발송 및 확인 결과 반환
+// 로그인 전, 이메일 인증번호를 발송하고 확인하는 인증 전담 컨트롤러
 package com.example.demo.controller;
 
 import com.example.demo.service.EmailService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,18 +18,21 @@ public class EmailController {
 
     private final EmailService emailService;
 
-    // 인증번호 발송 API
+    /* 인증번호 발송 API */
     @PostMapping("/send")
-    public String sendEmail(@RequestBody Map<String, String> request) {
+    public ResponseEntity<?> sendEmail(@RequestBody Map<String, String> request) {
         emailService.sendEmail(request.get("email"));
-        return "인증번호가 발송되었습니다.";
+        return ResponseEntity.ok(Map.of("message", "인증번호가 발송되었습니다."));
     }
 
-    // 인증번호 확인 API
+    /* 인증번호 확인 API */
     @PostMapping("/verify")
-    public String verifyCode(@RequestBody Map<String, String> request) {
+    public ResponseEntity<?> verifyCode(@RequestBody Map<String, String> request) {
         boolean isVerified = emailService.verifyCode(request.get("email"), request.get("code"));
-        return isVerified ? "인증 성공!" : "인증번호가 일치하지 않습니다.";
+        if (isVerified) {
+            return ResponseEntity.ok(Map.of("message", "인증 성공!"));
+        }
+        return ResponseEntity.badRequest().body(Map.of("message", "인증번호가 일치하지 않습니다."));
     }
 
 }

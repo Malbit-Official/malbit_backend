@@ -55,6 +55,10 @@ public class User {
         this.registrationId = registrationId;
     }
 
+    public void updatePassword(String password) {
+        this.password = password;
+    }
+
     public User updateName(String name) {
         this.name = name;
         return this;
@@ -63,5 +67,6 @@ public class User {
     public enum RegistrationId {
         LOCAL, KAKAO, GOOGLE
     }
+
 
 }

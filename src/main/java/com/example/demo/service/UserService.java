@@ -76,6 +76,20 @@ public class UserService {
                 .build();
     }
 
+    /* 비밃번호 업데이트 로직 */
+    @Transactional
+    public void updatePassword(String email, String newPassword) {
+        // 가입된 유저인지 확인
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("해당 이메일로 가입된 계정을 찾을 수 없습니다."));
+
+        // 새 비밀번호 암호화
+        String encodedPassword = passwordEncoder.encode(newPassword);
+
+        // 비밀번호 업데이트
+        user.updatePassword(encodedPassword);
+    }
+
     /* 소셜 유저 저장 혹은 업데이트 (OAuth2용) */
     public User saveOrUpdateSocialUser(String email, String name, User.RegistrationId registrationId) {
         User user = userRepository.findByEmail(email)

@@ -43,7 +43,7 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
                         // 엔드포인트 허용
-                        .requestMatchers("/api/users/join", "/api/users/login", "/api/users/me", "/api/auth/email/**", "/oauth2/**", "/login/oauth2/**").permitAll()
+                        .requestMatchers("/api/users/join", "/api/users/login", "/api/users/me", "/api/auth/email/**", "/oauth2/**", "/login/oauth2/**", "/api/users/password/reset").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().authenticated()
