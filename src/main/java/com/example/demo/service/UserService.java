@@ -2,9 +2,9 @@
 package com.example.demo.service;
 
 import com.example.demo.domain.User;
-import com.example.demo.dto.LoginResponse;
+import com.example.demo.dto.UserLoginResponse;
 import com.example.demo.dto.UserJoinRequest;
-import com.example.demo.dto.UserResponse;
+import com.example.demo.dto.UserInfoResponse;
 import com.example.demo.repository.UserRepository;
 import com.example.demo.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -44,7 +44,7 @@ public class UserService {
 
 
     /* 로그인 로직 */
-    public LoginResponse login(String email, String password) {
+    public UserLoginResponse login(String email, String password) {
 
         // 이메일로 사용자 조회
         User user = userRepository.findByEmail(email)
@@ -57,19 +57,19 @@ public class UserService {
 
         // 로그인 성공 시 토큰 생성
         String accessToken = jwtTokenProvider.createToken(user.getEmail());
-
         String refreshToken = accessToken;
 
-        return new LoginResponse(accessToken, refreshToken);    }
+        return new UserLoginResponse(accessToken, refreshToken);
+    }
 
     /* 내 정보 조회 로직 */
     @Transactional(readOnly = true)
-    public UserResponse getUserInfo(String email) {
+    public UserInfoResponse getUserInfo(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("해당 사용자가 존재하지 않습니다."));
 
         // 엔티티를 DTO로 변환해서 반환
-        return UserResponse.builder()
+        return UserInfoResponse.builder()
                 .email(user.getEmail())
                 .name(user.getName())
                 .jobType(user.getJobType())

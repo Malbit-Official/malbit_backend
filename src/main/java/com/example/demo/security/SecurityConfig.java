@@ -22,6 +22,9 @@ public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
 
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final CustomOAuth2UserService customOAuth2UserService;
+
     // 비밀번호 암호화 도구 등록
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -49,13 +52,18 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/users/join", "/api/users/login", "/api/users/me").permitAll()
+                        // 엔드포인트 허용
+                        .requestMatchers("/api/users/join", "/api/users/login", "/api/users/me", "/oauth2/**", "/login/oauth2/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().authenticated()
                 )
 
+                // 소셜 로그인 설정
+                .oauth2Login(oauth2 -> oauth2
+                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+                        .successHandler(oAuth2SuccessHandler)
+                )
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

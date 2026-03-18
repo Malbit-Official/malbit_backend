@@ -1,10 +1,10 @@
 // API 호출을 받아 회원 관련 기능을 실행하고 결과를 응답
 package com.example.demo.controller;
 
-import com.example.demo.dto.LoginResponse;
+import com.example.demo.dto.UserLoginResponse;
 import com.example.demo.dto.UserJoinRequest;
 import com.example.demo.dto.UserLoginRequest;
-import com.example.demo.dto.UserResponse;
+import com.example.demo.dto.UserInfoResponse;
 import com.example.demo.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -26,20 +26,20 @@ public class UserController {
 
     /* 로그인 API */
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody UserLoginRequest request) {
+    public ResponseEntity<UserLoginResponse> login(@RequestBody UserLoginRequest request) {
 
-        LoginResponse response = userService.login(request.getEmail(), request.getPassword());
+        UserLoginResponse response = userService.login(request.getEmail(), request.getPassword());
 
         return ResponseEntity.ok(response);
     }
 
     /* 토큰 인증 테스트 API */
     @GetMapping("/me")
-    public ResponseEntity<UserResponse> getMyInfo() {
+    public ResponseEntity<UserInfoResponse> getMyInfo() {
 
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        UserResponse response = userService.getUserInfo(email);
+        UserInfoResponse response = userService.getUserInfo(email);
 
         return ResponseEntity.ok(response);
     }

@@ -9,7 +9,7 @@ import lombok.Getter;
 @Getter
 @Builder
 @AllArgsConstructor
-public class UserResponse {
+public class UserInfoResponse {
     private String email;   //  사용자 이메일
     private String name;    // 사용자 이름(닉네임)
     private JobType jobType;    // 사용자 직무
