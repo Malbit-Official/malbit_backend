@@ -1,15 +1,17 @@
-// 로그인 성공 시 토큰을 담아서 보내줄 바구니(DTO)
 package com.example.demo.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 
 @Getter
+@Builder
 @AllArgsConstructor
-public class LoginResponse {
+public class UserSocialResponse {
 
     private String accessToken;
     private String refreshToken;
-
+    private boolean isNewUser;
+    private String message;
 }
