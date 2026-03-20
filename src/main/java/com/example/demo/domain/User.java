@@ -17,7 +17,7 @@ public class User {
     private String email; // 로그인 계정
 
     @Column(nullable = false)
-    private String password; // 성함
+    private String password; // 비밀번호
 
     @Column(nullable = false)
     private String name; // 성함
