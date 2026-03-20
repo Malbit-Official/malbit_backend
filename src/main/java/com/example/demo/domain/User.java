@@ -22,7 +22,8 @@ public class User {
     @Column(nullable = false)
     private String name; // 성함
 
-    private String disabilityType; // 장애유형
+    @Enumerated(EnumType.STRING)
+    private DisabilityType disabilityType; // 장애유형
 
     private Integer cognitiveLevel; // 인지수준
 
@@ -43,7 +44,7 @@ public class User {
     }
 
     @Builder
-    public User(String email, String password, String name, String disabilityType,
+    public User(String email, String password, String name, DisabilityType disabilityType,
                 Integer cognitiveLevel, JobType jobType, String preferredTone, RegistrationId registrationId) {
         this.email = email;
         this.password = password;
