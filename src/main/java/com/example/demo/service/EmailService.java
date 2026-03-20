@@ -3,6 +3,7 @@ package com.example.demo.service;
 
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -16,6 +17,12 @@ import java.util.Random;
 @RequiredArgsConstructor
 public class EmailService {
     private final JavaMailSender mailSender;
+
+    @Value("${spring.mail.username}")
+    private String fromEmail;
+
+    @Value("${spring.mail.properties.sender-name:말빛(Malbit)}")
+    private String senderName;
 
     // 임시 저장소 (이메일 : 인증번호)
     private final Map<String, String> authCodeMap = new HashMap<>();
@@ -43,7 +50,7 @@ public class EmailService {
             helper.setTo(toEmail);
             message.setSubject("[말빛] 회원가입 인증번호입니다.");
 
-            helper.setFrom("baesuna2930@gmail.com", "말빛(Malbit)");
+            helper.setFrom(fromEmail, senderName);
 
             helper.setText("인증번호는 <b>[" + authCode + "]</b> 입니다.", true);
 

@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -22,16 +23,14 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException {
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
+        String email = null;
 
-        // 소셜 로그인 유저이 이메일 추출
-        // (카카오와 구글의 이메일 위치가 다를 수 있어 CustomOAuth2UserService에서 정제한 방식을 참고)
-        String email = (String) oAuth2User.getAttributes().get("email");
-
-        // 만약 카카오라면 구조가 다름! (간단하게 email로 가정하거나 정제된 속성을 가져옴
-        if (email == null) {
-            // 카카오용 예시 (실제 구조에 맞춰 수정 필요)
-            java.util.Map<String, Object> kakaoAccount = (java.util.Map<String, Object>) oAuth2User.getAttributes().get("kakao_account");
-            email = (String) kakaoAccount.get("email");
+        // 만약 Attributes에 직접 접근한다면 안전한 추출 로직:
+        if (oAuth2User.getAttributes().containsKey("email")) {
+            email = (String) oAuth2User.getAttributes().get("email"); // 구글 등
+        } else if (oAuth2User.getAttributes().containsKey("kakao_account")) {
+            Map<String, Object> kakaoAccount = (Map<String, Object>) oAuth2User.getAttributes().get("kakao_account");
+            email = (String) kakaoAccount.get("email"); // 카카오
         }
 
         // JWT 토큰 생성
