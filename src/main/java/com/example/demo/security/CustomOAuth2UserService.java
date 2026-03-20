@@ -45,6 +45,10 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
             Map<String, Object> kakaoAccount = (Map<String, Object>) attributes.get("kakao_account");
             Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
             email = (String) kakaoAccount.get("email");
+            name = (String) profile.get("nickname");
+        }
+        else if ("google".equals(registrationId)) {
+            email = (String) attributes.get("email");
             name = (String) attributes.get("name");
         }
 
