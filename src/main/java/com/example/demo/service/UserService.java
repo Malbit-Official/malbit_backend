@@ -2,10 +2,7 @@
 package com.example.demo.service;
 
 import com.example.demo.domain.User;
-import com.example.demo.dto.PasswordUpdateRequest;
-import com.example.demo.dto.UserLoginResponse;
-import com.example.demo.dto.UserJoinRequest;
-import com.example.demo.dto.UserInfoResponse;
+import com.example.demo.dto.*;
 import com.example.demo.repository.UserRepository;
 import com.example.demo.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +11,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 @Service
 @Transactional
@@ -149,6 +148,94 @@ public class UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
         user.updateProfileImage(imageUrl); // 엔티티의 필드 업데이트
+    }
+
+    /* 사용자 환경 설정 업데이트 */
+    @Transactional
+    public void updateEnvironment(String email, ProfileUpdateRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        user.updateEnvironment(
+                request.getJobType(),
+                request.getDisabilityType(),
+                request.getCognitiveLevel()
+        );
+    }
+
+    /* 음성 재등록 로직 */
+    @Transactional
+    public void reRegisterVoiceFiles(String email, List<MultipartFile> voiceFiles) throws IOException {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // 여러 파일을 저장
+        // 마지막 파일의 경로를 저장하거나, 별도의 테이블이 없다면 첫 번째 경로를 대표로 저장
+        String lastSavedPath = "";
+
+        for (MultipartFile file : voiceFiles) {
+            if (!file.isEmpty()) {
+                lastSavedPath = fileService.saveFile(file, "voices/training");
+            }
+        }
+
+        // DB 업데이트 (AI 학습용 원본 파일 경로 저장)
+        user.updateVoiceFile(lastSavedPath);
+    }
+
+    /* 음성 삭제 로직 */
+    @Transactional
+    public void deleteVoiceFiles(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        String voicePath = user.getVoiceFileUrl();
+
+        if (voicePath != null && !voicePath.isEmpty()) {
+            // 실제 물리 파일 삭제
+            deletePhysicalFile(voicePath);
+
+            // DB 정보 초기화
+            user.updateVoiceFile(null);
+        }
+    }
+
+    // 물리 파일 삭제를 위한 private 메서드
+    private void deletePhysicalFile(String relativePath) {
+        String rootPath = System.getProperty("user.dir");
+        File file = new File(rootPath + relativePath.replace("/", File.separator));
+        if (file.exists()) {
+            file.delete(); // 파일 삭제 실행
+        }
+    }
+
+    /* 음성 인식 및 말투 설정 로직 */
+    @Transactional
+    public void updateAiSettings(String email, AiSettingsRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        user.updateAiSettings(request.getSpeechWaitTime(), request.getPreferredTone());
+    }
+
+    /* 사전 음성 등록 로직 */
+    @Transactional
+    public void registerVoiceSamples(String email, List<MultipartFile> samples) throws IOException {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        String samplePath = "";
+
+        // 여러 개의 샘플 파일을 순회하며 저장
+        for (MultipartFile file : samples) {
+            if (!file.isEmpty()) {
+                // 저장 폴더를 voices/samples 로 구분
+                samplePath = fileService.saveFile(file, "voices/samples");
+            }
+        }
+
+        // DB에 대표 경로 저장 (또는 샘플 등록 완료 처리)
+        user.updateVoiceFile(samplePath);
     }
 }
 
