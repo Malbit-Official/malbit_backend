@@ -270,6 +270,30 @@ public class UserService {
                 .generatedSummaries(stats.getGeneratedSummaries())
                 .build();
     }
+
+    /* 로그아웃 로직 */
+    public void logout(String email) {
+
+    }
+
+    /* 회원 탈퇴 로직 */
+    @Transactional
+    public void withdraw(String email, String inputPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        if (!passwordEncoder.matches(inputPassword, user.getPassword())) {
+            throw new IllegalArgumentException("비밀번호가 일치하지 않아 탈퇴 처리가 불가능합니다.");
+        }
+
+        // 물리 파일들 삭제 (기존 로직 동일)
+        if (user.getProfileImUrl() != null) deletePhysicalFile(user.getProfileImUrl());
+        if (user.getVoiceFileUrl() != null) deletePhysicalFile(user.getVoiceFileUrl());
+        if (user.getVoiceSampleUrl() != null) deletePhysicalFile(user.getVoiceSampleUrl());
+
+        // DB에서 유저 삭제
+        userRepository.delete(user);
+    }
 }
 
 
