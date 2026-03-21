@@ -2,8 +2,10 @@
 package com.example.demo.service;
 
 import com.example.demo.domain.User;
+import com.example.demo.domain.UserStatistics;
 import com.example.demo.dto.*;
 import com.example.demo.repository.UserRepository;
+import com.example.demo.repository.UserStatisticsRepository;
 import com.example.demo.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,6 +25,7 @@ public class UserService {
     private final FileService fileService;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
+    private final UserStatisticsRepository statisticsRepository;
 
 
     /* 회원가입 로직 */
@@ -41,6 +44,8 @@ public class UserService {
                 .password(encodedPassword)
                 .name(request.getNickname())
                 .jobType(request.getJobType())
+                .disabilityType(request.getDisabilityType())
+                .cognitiveLevel(request.getCognitiveLevel())
                 .build();
 
         return userRepository.save(user).getUserId();
@@ -236,6 +241,34 @@ public class UserService {
 
         // DB에 대표 경로 저장 (또는 샘플 등록 완료 처리)
         user.updateVoiceFile(samplePath);
+    }
+
+    /* 사용자 디스플레이 설정 로직*/
+    @Transactional
+    public void updateDisplaySettings(String email, DisplaySettingsRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        user.updateDisplaySettings(request.getFontSize(), request.getIsLargeButton());
+    }
+
+    /* 통계 데이터 조회 로직 */
+    @Transactional(readOnly = true)
+    public UserStatisticsResponse getStatistics(String email) {
+        UserStatistics stats = statisticsRepository.findByUserEmail(email)
+                .orElseGet(() -> UserStatistics.builder()
+                        .totalCorrectionCount(0)
+                        .averageCorrectionIntensity(0)
+                        .completedRoleplays(0)
+                        .generatedSummaries(0)
+                        .build());
+
+        return UserStatisticsResponse.builder()
+                .totalCorrectionCount(stats.getTotalCorrectionCount())
+                .averageCorrectionIntensity(stats.getAverageCorrectionIntensity())
+                .completedRoleplays(stats.getCompletedRoleplays())
+                .generatedSummaries(stats.getGeneratedSummaries())
+                .build();
     }
 }
 
