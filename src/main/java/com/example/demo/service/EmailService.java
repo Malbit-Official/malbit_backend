@@ -48,7 +48,7 @@ public class EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             helper.setTo(toEmail);
-            message.setSubject("[말빛] 회원가입 인증번호입니다.");
+            message.setSubject("[말빛] 이메일 인증번호입니다.");
 
             helper.setFrom(fromEmail, senderName);
 

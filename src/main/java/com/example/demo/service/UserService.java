@@ -2,6 +2,7 @@
 package com.example.demo.service;
 
 import com.example.demo.domain.User;
+import com.example.demo.dto.PasswordUpdateRequest;
 import com.example.demo.dto.UserLoginResponse;
 import com.example.demo.dto.UserJoinRequest;
 import com.example.demo.dto.UserInfoResponse;
@@ -11,12 +12,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 
 @Service
 @Transactional
 @RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
+    private final FileService fileService;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
 
@@ -76,21 +81,35 @@ public class UserService {
                 .build();
     }
 
-    /* 비밃번호 업데이트 로직 */
+    /* 비밀번호 재설정 로직 (로그인 전 이메일 인증 후 강제 변경) */
     @Transactional
-    public void updatePassword(String email, String newPassword) {
+    public void resetPassword(String email, String newPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("해당 이메일로 가입된 계정을 찾을 수 없습니다."));
+
+        // 기존 비번 확인 없이 바로 새 비번 암호화 및 저장
+        String encodedPassword = passwordEncoder.encode(newPassword);
+        user.updatePassword(encodedPassword);
+    }
+
+    /* 비밃번호 변경 로직 */
+    @Transactional
+    public void updatePassword(String email, PasswordUpdateRequest request) {
         // 가입된 유저인지 확인
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("해당 이메일로 가입된 계정을 찾을 수 없습니다."));
 
-        // 새 비밀번호 암호화
-        String encodedPassword = passwordEncoder.encode(newPassword);
-
-        // 비밀번호 업데이트
+        // 기존 비밀번호 일치 여부 확인
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("기존 비밀번호가 일치하지 않습니다.");
+        }
+        // 새 비밀번호 암호화 및 저장
+        String encodedPassword = passwordEncoder.encode(request.getNewPassword());
+        // 새 비밀번호 업데이트
         user.updatePassword(encodedPassword);
     }
 
-    /* 소셜 유저 저장 혹은 업데이트 (OAuth2용) */
+    /* 소셜 유저 저장 혹은 업데이트 로직(OAuth2용) */
     public User saveOrUpdateSocialUser(String email, String name, User.RegistrationId registrationId) {
         User user = userRepository.findByEmail(email)
                 .map(entity -> {
@@ -107,4 +126,30 @@ public class UserService {
 
         return userRepository.save(user);
     }
+
+    /* 이메일 업데이트 로직 */
+    @Transactional
+    public void updateEmail(String currentEmail, String newEmail) {
+        // 새 이메일 중복 검사
+        if (userRepository.existsByEmail(newEmail)) {
+            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
+        }
+
+        // 현재 유저 정보 가져오기
+        User user = userRepository.findByEmail(currentEmail)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // 이메일 변경
+        user.updateEmail(newEmail);
+    }
+
+    /* 프로필 이미지 업데이트 로직 */
+    @Transactional
+    public void updateProfileImage(String email, String imageUrl) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        user.updateProfileImage(imageUrl); // 엔티티의 필드 업데이트
+    }
 }
+
+

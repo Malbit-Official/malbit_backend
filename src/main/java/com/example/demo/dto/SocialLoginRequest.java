@@ -1,4 +1,4 @@
-// 프론트(Native SDK)에서 전달받은 액세스 토큰을 담는 바구니(DTO)
+// 소셜 로그인 DTO
 package com.example.demo.dto;
 
 import lombok.Getter;

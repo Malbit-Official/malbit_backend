@@ -38,6 +38,18 @@ public class User {
     @Column(updatable = false)
     private LocalDateTime createdAt; //가입일
 
+    @Column
+    private String profileImUrl; // 프로필 사진 이미지 경로
+
+    @Column
+    private String voiceFileUrl; // 음성 모델 생성을 위한 원본 음성 파일 경로
+
+    @Column
+    private String fontSize = "MEDIUM"; // 디자인의 글자 크기
+
+    @Column
+    private Boolean isLargeButton = false; // 버튼 크게 보기 여부
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
@@ -56,10 +68,18 @@ public class User {
         this.registrationId = registrationId;
     }
 
+    // 비밀번호 변경
     public void updatePassword(String password) {
         this.password = password;
     }
 
+    // 이메일 변경
+    public void updateEmail(String email) { this.email = email; }
+
+    // 프로필 사진 추가
+    public void updateProfileImage(String profileImUrl) {
+        this.profileImUrl = profileImUrl;
+    }
     public User updateName(String name) {
         this.name = name;
         return this;
@@ -68,6 +88,5 @@ public class User {
     public enum RegistrationId {
         LOCAL, KAKAO, GOOGLE
     }
-
 
 }

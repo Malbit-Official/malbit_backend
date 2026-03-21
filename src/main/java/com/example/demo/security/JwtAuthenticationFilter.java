@@ -1,5 +1,3 @@
-// 모든 HTTP 요청에서 JWT 토큰을 추출하여 유효성을 검증하고,
-// 인증된 사용자의 정보를 보안 컨텍스트에 등록하는 보안 필터
 package com.example.demo.security;
 
 import jakarta.servlet.FilterChain;
@@ -32,19 +30,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (token != null && jwtTokenProvider.validateToken(token)) {
             String email = jwtTokenProvider.getUserEmail(token);
 
+            // 권한 부여
+            List<SimpleGrantedAuthority> authorities =
+                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
+
+            // 인증 객체 생성
             UsernamePasswordAuthenticationToken auth =
-                    new UsernamePasswordAuthenticationToken(email, null, java.util.Collections.emptyList());
+                    new UsernamePasswordAuthenticationToken(email, null, authorities);
 
             // SecurityContext에 인증 정보 저장
             SecurityContextHolder.getContext().setAuthentication(auth);
         }
 
-        // 다음 필터로 요청 전달
         filterChain.doFilter(request, response);
     }
 
-    // HTTP 요청의 Authorization 헤더에서 JWT 토큰을 추출
-    // 형식: Authorization: Bearer {JWT_TOKEN}
     private String resolveToken(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
         if (bearerToken != null && bearerToken.startsWith("Bearer ")) {

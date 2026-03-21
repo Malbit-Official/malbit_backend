@@ -1,3 +1,4 @@
+// 비밀번호 재설정 DTO(로그인 전(비밀번호 까먹었을 때) or 회원가입 시)
 package com.example.demo.dto;
 
 import lombok.Getter;

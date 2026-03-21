@@ -26,7 +26,7 @@ public class JwtTokenProvider {
     @PostConstruct
     protected void init() {
         // 비밀키를 암호화 알고리즘에 맞게 변환
-        byte[] keyBytes = Base64.getDecoder().decode(secretKey);
+        byte[] keyBytes = secretKey.getBytes();
         this.key = Keys.hmacShaKeyFor(keyBytes);
     }
 
