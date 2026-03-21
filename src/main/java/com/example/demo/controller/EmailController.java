@@ -1,6 +1,6 @@
-// 로그인 전, 이메일 인증번호를 발송하고 확인하는 인증 전담 컨트롤러
 package com.example.demo.controller;
 
+import com.example.demo.dto.ApiResponse;
 import com.example.demo.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -18,21 +18,38 @@ public class EmailController {
 
     private final EmailService emailService;
 
-    /* 인증번호 발송 API */
+    /* 이메일 인증번호 발송 API */
     @PostMapping("/send")
-    public ResponseEntity<?> sendEmail(@RequestBody Map<String, String> request) {
-        emailService.sendEmail(request.get("email"));
-        return ResponseEntity.ok(Map.of("message", "인증번호가 발송되었습니다."));
-    }
+    public ResponseEntity<ApiResponse<Object>> sendEmail(@RequestBody Map<String, String> request) {
+        try {
+            String email = request.get("email");
+            if (email == null || email.isEmpty()) {
+                return ResponseEntity.badRequest().body(ApiResponse.fail("이메일 주소를 입력해주세요."));
+            }
 
-    /* 인증번호 확인 API */
-    @PostMapping("/verify")
-    public ResponseEntity<?> verifyCode(@RequestBody Map<String, String> request) {
-        boolean isVerified = emailService.verifyCode(request.get("email"), request.get("code"));
-        if (isVerified) {
-            return ResponseEntity.ok(Map.of("message", "인증 성공!"));
+            emailService.sendEmail(email);
+            return ResponseEntity.ok(ApiResponse.success("인증번호가 발송되었습니다."));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(ApiResponse.fail("메일 발송 중 오류가 발생했습니다."));
         }
-        return ResponseEntity.badRequest().body(Map.of("message", "인증번호가 일치하지 않습니다."));
     }
 
+    /* 이메일 인증번호 검증 API */
+    @PostMapping("/verify")
+    public ResponseEntity<ApiResponse<Object>> verifyCode(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        String code = request.get("code");
+
+        if (email == null || code == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("이메일과 인증번호를 모두 입력해주세요."));
+        }
+
+        boolean isVerified = emailService.verifyCode(email, code);
+
+        if (isVerified) {
+            return ResponseEntity.ok(ApiResponse.success("이메일 인증에 성공하였습니다."));
+        } else {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("인증번호가 일치하지 않거나 만료되었습니다."));
+        }
+    }
 }

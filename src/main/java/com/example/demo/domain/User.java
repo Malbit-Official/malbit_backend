@@ -26,12 +26,15 @@ public class User {
     private String name; // 성함
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private DisabilityType disabilityType; // 장애유형
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private CognitiveLevel cognitiveLevel; // 인지수준
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private JobType jobType; // 직무분야
 
     @Column
@@ -56,7 +59,7 @@ public class User {
     private String voiceSampleUrl; // 사전 음성 등록
 
     @Column
-    private String fontSize = "MEDIUM"; // 디자인의 글자 크기
+    private String fontSize = "MEDIUM"; // 글자 크기
 
     @Column
     private Boolean isLargeButton = false; // 버튼 크게 보기 여부
@@ -119,7 +122,11 @@ public class User {
         if (preferredTone != null) this.preferredTone = preferredTone;
     }
 
-
+    // 사용자 디스플레이 설정
+    public void updateDisplaySettings(String fontSize, Boolean isLargeButton) {
+        if (fontSize != null) this.fontSize = fontSize;
+        if (isLargeButton != null) this.isLargeButton = isLargeButton;
+    }
 
     public User updateName(String name) {
         this.name = name;
