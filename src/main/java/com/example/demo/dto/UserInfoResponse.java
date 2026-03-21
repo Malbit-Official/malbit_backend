@@ -1,4 +1,4 @@
-// 클라이언트에세 응답할 사용자 정보를 담는 데이터 전송 객체(DTO)
+// 내 정보 조회 DTO
 package com.example.demo.dto;
 
 import com.example.demo.domain.JobType;

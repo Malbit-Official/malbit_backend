@@ -1,4 +1,4 @@
-// 회원가입 시 프론트로부터 전달받는 데이터를 담는 바구니(DTO)
+// JWT 로그인 DTO
 package com.example.demo.dto;
 
 import com.example.demo.domain.JobType;
