@@ -2,12 +2,15 @@ package com.example.demo.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.lang.module.Configuration;
 import java.time.LocalDateTime;
 
 @Entity
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED) // 무분별한 객체 생성을 막아 보안성 강화
-@Table(name = "users") // DB 예약어인 'user'의 충돌 방지를 위해 테이블명 명시
+@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(name = "users")
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,12 +28,17 @@ public class User {
     @Enumerated(EnumType.STRING)
     private DisabilityType disabilityType; // 장애유형
 
-    private Integer cognitiveLevel; // 인지수준
+    @Enumerated(EnumType.STRING)
+    private CognitiveLevel cognitiveLevel; // 인지수준
 
     @Enumerated(EnumType.STRING)
     private JobType jobType; // 직무분야
 
-    private String preferredTone; // 리마스터링 말투
+    @Column
+    private Double speechWaitTime = 1.5; // 말하기 대기 시간 (기본값 1.5초)
+
+    @Enumerated(EnumType.STRING)
+    private PreferredTone preferredTone = PreferredTone.POLITE; // 리마스터링 말투 (기본값 존댓말)
 
     @Enumerated(EnumType.STRING)
     private RegistrationId registrationId; // LOCAL, KAKAO, GOOGLE 중 하나
@@ -45,6 +53,9 @@ public class User {
     private String voiceFileUrl; // 음성 모델 생성을 위한 원본 음성 파일 경로
 
     @Column
+    private String voiceSampleUrl; // 사전 음성 등록
+
+    @Column
     private String fontSize = "MEDIUM"; // 디자인의 글자 크기
 
     @Column
@@ -57,15 +68,19 @@ public class User {
 
     @Builder
     public User(String email, String password, String name, DisabilityType disabilityType,
-                Integer cognitiveLevel, JobType jobType, String preferredTone, RegistrationId registrationId) {
+                CognitiveLevel cognitiveLevel, JobType jobType, Double speechWaitTime,
+                PreferredTone preferredTone, RegistrationId registrationId) {
         this.email = email;
         this.password = password;
         this.name = name;
         this.disabilityType = disabilityType;
         this.cognitiveLevel = cognitiveLevel;
         this.jobType = jobType;
-        this.preferredTone = preferredTone;
+        this.speechWaitTime = (speechWaitTime != null) ? speechWaitTime : 1.5;
+        this.preferredTone = (preferredTone != null) ? preferredTone : PreferredTone.POLITE;
         this.registrationId = registrationId;
+        this.fontSize = "MEDIUM";
+        this.isLargeButton = false;
     }
 
     // 비밀번호 변경
@@ -80,6 +95,32 @@ public class User {
     public void updateProfileImage(String profileImUrl) {
         this.profileImUrl = profileImUrl;
     }
+
+    // 환경 설정
+    public void updateEnvironment(JobType jobType, DisabilityType disabilityType, CognitiveLevel cognitiveLevel) {
+        if (jobType != null) this.jobType = jobType;
+        if (disabilityType != null) this.disabilityType = disabilityType;
+        if (cognitiveLevel != null) this.cognitiveLevel = cognitiveLevel;
+    }
+
+    // 음성 재등록, 삭제
+    public void updateVoiceFile(String voiceFileUrl) {
+        this.voiceFileUrl = voiceFileUrl;
+    }
+
+    // 사전 음성 등록
+    public void updateVoiceSample(String voiceSampleUrl) {
+        this.voiceSampleUrl = voiceSampleUrl;
+    }
+
+    // 음성 인식 및 말투 설정
+    public void updateAiSettings(Double speechWaitTime, PreferredTone preferredTone) {
+        if (speechWaitTime != null) this.speechWaitTime = speechWaitTime;
+        if (preferredTone != null) this.preferredTone = preferredTone;
+    }
+
+
+
     public User updateName(String name) {
         this.name = name;
         return this;
