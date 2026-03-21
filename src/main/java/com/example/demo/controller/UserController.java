@@ -232,4 +232,37 @@ public class UserController {
             return ResponseEntity.badRequest().body(ApiResponse.fail("통계 조회 중 오류가 발생했습니다."));
         }
     }
+
+    /* 로그아웃 API */
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Object>> logout(@AuthenticationPrincipal String email) {
+        try {
+            userService.logout(email);
+
+            return ResponseEntity.ok(ApiResponse.success("로그아웃되었습니다."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("로그아웃 처리 중 오류가 발생했습니다."));
+        }
+    }
+
+    /* 회원 탈퇴 API */
+    @DeleteMapping("/withdraw")
+    public ResponseEntity<ApiResponse<Object>> withdraw(
+            @AuthenticationPrincipal String email,
+            @RequestBody WithdrawRequest request) {
+
+        try {
+            if (request.getPassword() == null || request.getPassword().isEmpty()) {
+                return ResponseEntity.badRequest().body(ApiResponse.fail("탈퇴 확인을 위해 비밀번호를 입력해주세요."));
+            }
+
+            userService.withdraw(email, request.getPassword());
+
+            return ResponseEntity.ok(ApiResponse.success("회원 탈퇴가 정상적으로 완료되었습니다. 그동안 '말빛'을 이용해주셔서 감사합니다."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(ApiResponse.fail("회원탈퇴 처리 중 오류가 발생했습니다."));
+        }
+    }
 }
