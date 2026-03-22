@@ -1,4 +1,4 @@
-// 로그인 시 프론트로부터 전달받는 이메일과 비밀번호를 담는 바구니(DTO)
+// JWT 회원가입 DTO
 package com.example.demo.dto;
 
 import lombok.Getter;
