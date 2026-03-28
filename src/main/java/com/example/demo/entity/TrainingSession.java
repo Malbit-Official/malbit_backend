@@ -34,6 +34,8 @@ public class TrainingSession {
 
     private LocalDateTime startedAt;
 
+    private boolean isCompleted = false; // 세션 종료 여부
+
     @Builder
     public TrainingSession(User user, TrainingCategory category, ScenarioStep currentStep) {
         this.user = user;
@@ -45,6 +47,10 @@ public class TrainingSession {
     // 다음 단계로 업데이트하는 메소드
     public void updateStep(ScenarioStep nextStep) {
         this.currentStep = nextStep;
+    }
+
+    public void completeSession() {
+        this.isCompleted = true;
     }
 
 }

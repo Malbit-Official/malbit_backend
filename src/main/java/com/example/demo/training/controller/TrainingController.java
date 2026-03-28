@@ -6,6 +6,7 @@ import com.example.demo.training.dto.*;
 import com.example.demo.training.service.TrainingCategoryService;
 import com.example.demo.training.service.TrainingService;
 import lombok.RequiredArgsConstructor;
+import org.apache.coyote.Response;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -45,9 +46,17 @@ public class TrainingController {
             @AuthenticationPrincipal User user
     ) {
         // 발음 분석과 다음 데이터 조회를 한 번에 처리해서 응답
-        TrainingStepResponse response = trainingService.processStep(request);
+        TrainingStepResponse response = trainingService.processStep(request, user);
         return ResponseEntity.ok(ApiResponse.success("단계가 갱신되었습니다.", response));
     }
 
     /* 연습 종료 및 결과 저장 API */
+    @PostMapping("/finish/{sessionId}")
+    public ResponseEntity<ApiResponse<TrainingResultResponse>> finishTraining(
+            @PathVariable Long sessionId,
+            @AuthenticationPrincipal User user
+    ) {
+        TrainingResultResponse response = trainingService.finishTraining(sessionId, user);
+        return ResponseEntity.ok(ApiResponse.success("연습이 완료되었습니다.", response));
+    }
 }

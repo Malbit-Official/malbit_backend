@@ -25,10 +25,12 @@ public class ScenarioStep {
     private String hintText; // 힌트보기
     private String missionText; // 미션 안내 문구 (예: "손님 주문에 응대해보세요!")
     private String retryScript; // 발음 부정확 시 AI가 다시 물어볼 대사 (예: "잘 못 들었어요. 다시 말씀해 주시겠어요?")
+    private String successMessage;  // 예: "주문 응대 성공"
 
     @Builder
     public ScenarioStep(TrainingCategory category, Integer stepOrder, String currentSituation,
-                        String guestScript, String hintText, String missionText, String retryScript) {
+                        String guestScript, String hintText, String missionText, String retryScript,
+                        String successMessage) {
         this.category = category;
         this.stepOrder = stepOrder;
         this.currentSituation = currentSituation;
@@ -36,6 +38,7 @@ public class ScenarioStep {
         this.hintText = hintText;
         this.missionText = missionText;
         this.retryScript = retryScript;
+        this.successMessage = successMessage;
     }
 
 }
