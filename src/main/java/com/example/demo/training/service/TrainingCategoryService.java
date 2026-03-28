@@ -19,12 +19,12 @@ public class TrainingCategoryService {
 
     public List<TrainingCategoryResponse> getAllCategories() {
         return trainingCategoryRepository.findAll().stream()
-                .map(category -> new TrainingCategoryResponse(
-                        category.getId(),
-                        category.getTitle(),
-                        category.getImageUrl(),
-                        category.getTags()
-                ))
+                .map(category -> TrainingCategoryResponse.builder()
+                        .id(category.getId())
+                        .title(category.getTitle())
+                        .imageUrl(category.getImageUrl())
+                        .tags(category.getTags())
+                        .build())
                 .collect(Collectors.toList());
     }
 }
