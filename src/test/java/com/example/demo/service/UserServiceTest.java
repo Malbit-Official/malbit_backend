@@ -1,9 +1,10 @@
 package com.example.demo.service;
 
-import com.example.demo.domain.JobType;
-import com.example.demo.domain.User;
-import com.example.demo.dto.UserJoinRequest;
-import com.example.demo.repository.UserRepository;
+import com.example.demo.entity.JobType;
+import com.example.demo.entity.User;
+import com.example.demo.users.dto.UserJoinRequest;
+import com.example.demo.users.repository.UserRepository;
+import com.example.demo.users.service.UserService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Transactional   // 테스트가 끝나면 데이터를 자동으로 롤백(삭제)해줌! DB가 깨끗하게 유지돼요.
 class UserServiceTest {
 
-    @Autowired UserService userService;
+    @Autowired
+    UserService userService;
     @Autowired UserRepository userRepository;
 
     @Test
