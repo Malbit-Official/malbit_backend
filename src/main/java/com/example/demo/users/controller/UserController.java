@@ -117,7 +117,10 @@ public class UserController {
             @AuthenticationPrincipal String email,
             @RequestParam("file") MultipartFile file) {
         try {
-            String imageUrl = fileService.saveFile(file, "profiles");
+            String imagePath = fileService.saveFile(file, "profiles");
+
+            String imageUrl = "http://10.0.2.2.:800" + imagePath;
+
             userService.updateProfileImage(email, imageUrl);
             return ResponseEntity.ok(ApiResponse.success("프로필 이미지가 업로드되었습니다.", Map.of("imageUrl", imageUrl)));
         } catch (IOException e) {
