@@ -20,35 +20,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
 
     @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getRequestURI();
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
 
-        return path.startsWith("/swagger-ui")
-                || path.equals("/swagger-ui.html")
-                || path.startsWith("/v3/api-docs")
-                || path.startsWith("/login")
-                || path.startsWith("/oauth2")
-                || path.startsWith("/error");
-    }
-
-    @Override
-    protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain
-    ) throws ServletException, IOException {
-
+        // Authorization 헤더에서 JWT 토큰 추출
         String token = resolveToken(request);
 
+        // 토큰이 존재하고 유효하면 인증 처리 수행
         if (token != null && jwtTokenProvider.validateToken(token)) {
             String email = jwtTokenProvider.getUserEmail(token);
 
+            // 권한 부여
             List<SimpleGrantedAuthority> authorities =
                     Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
 
+            // 인증 객체 생성
             UsernamePasswordAuthenticationToken auth =
                     new UsernamePasswordAuthenticationToken(email, null, authorities);
 
+            // SecurityContext에 인증 정보 저장
             SecurityContextHolder.getContext().setAuthentication(auth);
         }
 
@@ -57,11 +47,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private String resolveToken(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
-
         if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7);
         }
-
         return null;
     }
 }
