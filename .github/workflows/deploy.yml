@@ -1,0 +1,60 @@
+name: Malbit Java 21 Deploy
+
+on:
+  push:
+    branches: [ "develop" ] # develop 브랜치에 push될 때 실행
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1. Java 21 세팅
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      # 2. Gradle 빌드 (테스트 제외로 속도 향상)
+      - name: Build with Gradle
+        run: |
+          chmod +x ./gradlew
+          ./gradlew clean build -x test
+
+      # 3. Docker Hub 로그인
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 4. Docker 이미지 빌드 및 푸시
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/malbit-main:latest
+
+      # 5. AWS EC2 접속 및 배포 (메인 + AI)
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}      # 메인 서버 퍼블릭 IP
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}    # .pem 키 내용
+          script: |
+            # 1. 메인 서버 배포
+            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/malbit-main:latest
+            sudo docker stop malbit-main || true
+            sudo docker rm malbit-main || true
+            sudo docker run -d --name malbit-main -p 8080:8080 ${{ secrets.DOCKERHUB_USERNAME }}/malbit-main:latest
+            
+            # 2. AI 서버 배포 (AI 서버 IP가 따로 있다면 host를 바꿔서 하나 더 생성)
+            # 만약 같은 서버에 띄운다면 포트만 다르게(예: 5000) 설정
+            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/malbit-ai:latest
+            sudo docker stop malbit-ai || true
+            sudo docker rm malbit-ai || true
+            sudo docker run -d --name malbit-ai -p 5000:5000 ${{ secrets.DOCKERHUB_USERNAME }}/malbit-ai:latest
