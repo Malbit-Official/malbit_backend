@@ -5,6 +5,8 @@ package com.example.demo.global.security.oauth;
 import com.example.demo.entity.User;
 import com.example.demo.users.service.UserService;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
@@ -24,6 +26,9 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
+
+        System.out.println("OAUTH_DEBUG: 카카오 서버로부터 응답 도착!");
+
         OAuth2UserService<OAuth2UserRequest, OAuth2User> delegate = new DefaultOAuth2UserService();
         OAuth2User oAuth2User = delegate.loadUser(userRequest);
 
@@ -44,22 +49,36 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         if ("kakao".equals(registrationId)) {
             Map<String, Object> kakaoAccount = (Map<String, Object>) attributes.get("kakao_account");
             Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
-            email = (String) kakaoAccount.get("email");
-            name = (String) profile.get("nickname");
-        }
-        else if ("google".equals(registrationId)) {
+
+            if (kakaoAccount.get("email") != null) {
+                email = (String) kakaoAccount.get("email");
+            } else {
+                Object idObj = attributes.get("id");
+                email = (idObj != null ? idObj.toString() : "social" + System.currentTimeMillis()) + "@kakao.local";
+            }
+
+            if (profile != null && profile.get("nickname") != null) {
+                name = (String) profile.get("nickname");
+            } else {
+                name = "Kakao User";
+            }
+        } else if ("google".equals(registrationId)) {
             email = (String) attributes.get("email");
             name = (String) attributes.get("name");
+            if (name == null)
+                name = "Google User";
         }
 
         // DB에 저장하거나 업데이트
         User.RegistrationId socialType = User.RegistrationId.valueOf(registrationId.toUpperCase());
         userService.saveOrUpdateSocialUser(email, name, socialType);
 
+        System.out.println("OAUTH_DEBUG: email = " + email);
+        System.out.println("OAUTH_DEBUG: name = " + name);
+
         return new DefaultOAuth2User(
-                Collections.emptyList(),
+                Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")),
                 attributes,
-                userNameAttributeName
-        );
+                userNameAttributeName);
     }
 }

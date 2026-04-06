@@ -7,6 +7,9 @@ import com.example.demo.global.infrastructure.FileService;
 import com.example.demo.users.dto.*;
 import com.example.demo.users.repository.UserRepository;
 import com.example.demo.users.repository.UserStatisticsRepository;
+import com.example.demo.entity.DisabilityType;
+import com.example.demo.entity.CognitiveLevel;
+import com.example.demo.entity.JobType;
 import com.example.demo.global.security.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,7 +30,6 @@ public class UserService {
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
     private final UserStatisticsRepository statisticsRepository;
-
 
     /* 회원가입 로직 */
     public Long join(UserJoinRequest request) {
@@ -51,7 +53,6 @@ public class UserService {
 
         return userRepository.save(user).getUserId();
     }
-
 
     /* 로그인 로직 */
     public UserLoginResponse login(String email, String password) {
@@ -120,13 +121,16 @@ public class UserService {
                 .map(entity -> {
                     // 이미 있다면 이름만 업데이트 (선택 사항)
                     entity.updateName(name);
-                    return entity;
+                    return userRepository.save(entity);
                 })
-                .orElseGet (() -> User.builder() // 없으면 새로 생성
+                .orElseGet(() -> User.builder() // 없으면 새로 생성
                         .email(email)
                         .name(name)
-                        .password("SOCIAL_USER")
+                        .password(passwordEncoder.encode("SOCIAL_USER_" + registrationId))
                         .registrationId(registrationId)
+                        .disabilityType(DisabilityType.LANGUAGE)
+                        .cognitiveLevel(CognitiveLevel.LEVEL_3)
+                        .jobType(JobType.ETC)
                         .build());
 
         return userRepository.save(user);
@@ -165,8 +169,7 @@ public class UserService {
         user.updateEnvironment(
                 request.getJobType(),
                 request.getDisabilityType(),
-                request.getCognitiveLevel()
-        );
+                request.getCognitiveLevel());
     }
 
     /* 음성 재등록 로직 */
@@ -244,7 +247,7 @@ public class UserService {
         user.updateVoiceFile(samplePath);
     }
 
-    /* 사용자 디스플레이 설정 로직*/
+    /* 사용자 디스플레이 설정 로직 */
     @Transactional
     public void updateDisplaySettings(String email, DisplaySettingsRequest request) {
         User user = userRepository.findByEmail(email)
@@ -288,13 +291,14 @@ public class UserService {
         }
 
         // 물리 파일들 삭제 (기존 로직 동일)
-        if (user.getProfileImUrl() != null) deletePhysicalFile(user.getProfileImUrl());
-        if (user.getVoiceFileUrl() != null) deletePhysicalFile(user.getVoiceFileUrl());
-        if (user.getVoiceSampleUrl() != null) deletePhysicalFile(user.getVoiceSampleUrl());
+        if (user.getProfileImUrl() != null)
+            deletePhysicalFile(user.getProfileImUrl());
+        if (user.getVoiceFileUrl() != null)
+            deletePhysicalFile(user.getVoiceFileUrl());
+        if (user.getVoiceSampleUrl() != null)
+            deletePhysicalFile(user.getVoiceSampleUrl());
 
         // DB에서 유저 삭제
         userRepository.delete(user);
     }
 }
-
-
