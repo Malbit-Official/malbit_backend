@@ -1,11 +1,13 @@
 package com.example.demo.log.controller;
 
 import com.example.demo.entity.User;
+import com.example.demo.log.dto.LogCreateRequest;
 import com.example.demo.log.dto.LogDetailResponseDto;
 import com.example.demo.log.dto.LogResponseDto;
 import com.example.demo.log.service.LogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -36,5 +38,15 @@ public class LogController {
     public ResponseEntity<LogDetailResponseDto> getLogDetail(
             @PathVariable Long logId) { // URL 경로에 있는 ID를 받아옴
         return ResponseEntity.ok(logService.getLogDetail(logId));
+    }
+
+    /* 업무 기록 생성 및 요약 API */
+    @PostMapping
+    public ResponseEntity<Long> createLog(
+            @AuthenticationPrincipal User user,
+            @RequestBody LogCreateRequest request) {
+
+        Long logId = logService.createLog(user, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(logId);
     }
 }
