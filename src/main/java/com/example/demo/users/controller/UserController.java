@@ -111,6 +111,14 @@ public class UserController {
         }
     }
 
+    /* 이름 변경 API */
+    @PatchMapping("/name")
+    public ResponseEntity<Void> updateName(@AuthenticationPrincipal String email,
+                                           @RequestBody NameUpdateRequest request) {
+        userService.updateName(email, request.getNewName());
+        return ResponseEntity.ok().build();
+    }
+
     /* 프로필 사진 업로드 API */
     @PostMapping("/profile-image")
     public ResponseEntity<ApiResponse<Map<String, String>>> uploadProfileImage(

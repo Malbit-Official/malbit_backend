@@ -34,6 +34,13 @@ spring:
           starttls:
             enable: true
             required: true
+  
+  logging:
+  level:
+    root: INFO
+    org.springframework.security: DEBUG    # 시큐리티 흐름을 상세히 보여줌
+    org.springframework.web: DEBUG         # HTTP 요청/응답 확인
+    com.example.demo: DEBUG                # 코드 디버깅
 
   security:
     oauth2:
