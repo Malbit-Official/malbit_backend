@@ -97,4 +97,12 @@ public class LogService {
         logDetailRepository.saveAll(details);
     }
 
+    /* 메모 추가 및 수정 로직 */
+    @Transactional
+    public void updateMemo(Long logId, String memo) {
+        Log log = logRepository.findById(logId)
+                .orElseThrow(() -> new IllegalArgumentException("기록을 찾을 수 없습니다."));
+
+        log.updateMemo(memo); // Dirty Checking 으로 자동 업데이트
+    }
 }

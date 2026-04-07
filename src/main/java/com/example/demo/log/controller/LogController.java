@@ -4,8 +4,10 @@ import com.example.demo.entity.User;
 import com.example.demo.log.dto.LogCreateRequest;
 import com.example.demo.log.dto.LogDetailResponseDto;
 import com.example.demo.log.dto.LogResponseDto;
+import com.example.demo.log.dto.MemoRequest;
 import com.example.demo.log.service.LogService;
 import lombok.RequiredArgsConstructor;
+import org.apache.coyote.Response;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -48,5 +50,15 @@ public class LogController {
 
         Long logId = logService.createLog(user, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(logId);
+    }
+
+    /* 메모 추가 및 수정 API */
+    @PatchMapping
+    public ResponseEntity<Void> updateMemo(
+            @PathVariable Long logId,
+            @RequestBody MemoRequest request) {
+
+        logService.updateMemo(logId, request.getMemo());
+        return ResponseEntity.ok().build();
     }
 }

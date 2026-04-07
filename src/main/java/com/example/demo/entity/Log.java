@@ -34,4 +34,11 @@ public class Log {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user; // 작성자 연결
+
+    private String memo;
+
+    // 메모 수정을 위한 메서드
+    public void updateMemo(String memo) {
+        this.memo = memo;
+    }
 }
