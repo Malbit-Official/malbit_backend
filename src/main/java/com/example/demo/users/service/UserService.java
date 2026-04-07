@@ -152,6 +152,14 @@ public class UserService {
         user.updateEmail(newEmail);
     }
 
+    /* 이름 변경 로직 */
+    @Transactional
+    public void updateName(String email, String newName) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        user.updateName(newName);
+    }
+
     /* 프로필 이미지 업데이트 로직 */
     @Transactional
     public void updateProfileImage(String email, String imageUrl) {
