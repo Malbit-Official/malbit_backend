@@ -6,6 +6,7 @@ import com.example.demo.log.dto.LogDetailResponseDto;
 import com.example.demo.log.dto.LogResponseDto;
 import com.example.demo.log.repository.LogDetailRepository;
 import com.example.demo.log.repository.LogRepository;
+import com.example.demo.users.repository.UserRepository;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
@@ -23,12 +24,16 @@ public class LogService {
 
     private final LogRepository logRepository;
     private final LogDetailRepository logDetailRepository;
+    private final UserRepository userRepository;
 
     /* 업무 기록 목록 조회 로직 */
-    public List<LogResponseDto> getDailyLogs(User user, LocalDate date) {
+    public List<LogResponseDto> getDailyLogs(String email, LocalDate date) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
         return logRepository.findByUserAndDateOrderByStartTimeDesc(user, date)
                 .stream()
-                .map(LogResponseDto::from) // Entity를 DTO로 변환
+                .map(LogResponseDto::from)
                 .collect(Collectors.toList());
     }
 
@@ -61,7 +66,11 @@ public class LogService {
 
     /* 업무 기록 생성 및 요약 로직 */
     @Transactional
-    public Long createLog(User user, LogCreateRequest request) {
+    public LogDetailResponseDto createLog(String email, LogCreateRequest request) {
+
+        // 이메일로 유저 찾기
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
         // 메인 로그 생성 및 저장
         Log log = Log.builder()
@@ -79,7 +88,7 @@ public class LogService {
         // 지금은 테스트를 위해 임시 메서드로 처리
         generateAiDetails(savedLog, request.getRawContent());
 
-        return savedLog.getId();
+        return getLogDetail(savedLog.getId());
     }
 
     private void generateAiDetails(Log log, String rawContent) {
