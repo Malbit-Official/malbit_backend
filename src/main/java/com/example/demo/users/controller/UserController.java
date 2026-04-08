@@ -1,11 +1,13 @@
 package com.example.demo.users.controller;
 
+import com.example.demo.entity.User;
 import com.example.demo.global.common.ApiResponse;
 import com.example.demo.users.dto.*;
 import com.example.demo.users.service.EmailService;
 import com.example.demo.global.infrastructure.FileService;
 import com.example.demo.users.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.apache.coyote.Response;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -113,10 +115,16 @@ public class UserController {
 
     /* 이름 변경 API */
     @PatchMapping("/name")
-    public ResponseEntity<Void> updateName(@AuthenticationPrincipal String email,
-                                           @RequestBody NameUpdateRequest request) {
-        userService.updateName(email, request.getNewName());
-        return ResponseEntity.ok().build();
+    public ResponseEntity<ApiResponse<Object>> updateName(
+            @AuthenticationPrincipal String email,
+            @RequestBody NameUpdateRequest request) {
+
+        try {
+            userService.updateName(email, request.getNewName());
+            return ResponseEntity.ok(ApiResponse.success("사용자 이름이 변경되었습니다."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
+        }
     }
 
     /* 프로필 사진 업로드 API */
