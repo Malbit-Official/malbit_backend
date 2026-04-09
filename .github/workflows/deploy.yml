@@ -30,13 +30,22 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 4. Docker 이미지 빌드 및 푸시
-      - name: Build and push Docker image
+      # 4.1 Main 서버 Docker 이미지 빌드 및 푸시
+      - name: Build and push Main image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/malbit-main:latest
+
+      # 4.2 AI 서버 Docker 이미지 빌드 및 푸시
+      - name: Build and push AI image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./malbit_ai
+          file: ./malbit_ai/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/malbit-ai:latest
 
       # 5. AWS EC2 접속 및 배포 (메인 + AI)
       - name: Deploy to EC2
@@ -57,4 +66,4 @@ jobs:
             sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/malbit-ai:latest
             sudo docker stop malbit-ai || true
             sudo docker rm malbit-ai || true
-            sudo docker run -d --name malbit-ai -p 5000:5000 ${{ secrets.DOCKERHUB_USERNAME }}/malbit-ai:latest
+            sudo docker run -d --name malbit-ai --restart always -p 5000:5000 ${{ secrets.DOCKERHUB_USERNAME }}/malbit-ai:latest

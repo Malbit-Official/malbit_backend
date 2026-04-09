@@ -13,7 +13,7 @@ from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 load_dotenv()
 
 TARGET_SR = 16000
-DEFAULT_MODEL_PATH = r"D:\malbit_ai\models\whisper-dysarthria-ko"
+DEFAULT_MODEL_PATH = os.getenv("MODEL_PATH", ".\models\whisper-dysarthria-ko")
 DEFAULT_LLM_MODEL = os.getenv("LLM_MODEL", "gpt-5-mini")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
