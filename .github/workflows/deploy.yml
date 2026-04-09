@@ -55,7 +55,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}    # .pem 키 내용
           script: |
-            # 1. 메인 서버 배포
+            # 메인 서버 배포
             sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/malbit-main:latest
             sudo docker stop malbit-main || true
             sudo docker rm malbit-main || true
@@ -64,7 +64,7 @@ jobs:
               -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
               ${{ secrets.DOCKERHUB_USERNAME }}/malbit-main:latest
             
-            # 2. AI 서버 배포 
+            # AI 서버 배포 
             # 만약 같은 서버에 띄운다면 포트만 다르게(예: 5000) 설정
             sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/malbit-ai:latest
             sudo docker stop malbit-ai || true
