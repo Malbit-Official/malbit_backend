@@ -1,8 +1,0 @@
-torch
-transformers
-openai
-python-dotenv
-librosa
-numpy
-soundfile
-sentencepiece
