@@ -7,14 +7,24 @@ import com.example.demo.training.repository.StepResultRepository;
 import com.example.demo.training.repository.TrainingCategoryRepository;
 import com.example.demo.training.repository.TrainingSessionRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -24,6 +34,39 @@ public class TrainingService {
     private final ScenarioStepRepository stepRepository;
     private final TrainingSessionRepository sessionRepository;
     private final StepResultRepository stepResultRepository;
+
+    // 파일이 저장될 로컬 경로 (후에 S3으로 변경
+    private final String uploadPath = System.getProperty("user.dir") + "/uploads/";
+
+
+    /* 음성 파일 로컬에 저장 로직 */
+    public String processVoice(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("업로드된 음성 파일이 없습니다.");
+        }
+
+        try {
+            // 저장할 uploads 폴더가 없으면 생성
+            File folder = new File(uploadPath);
+            if (!folder.exists()) {
+                folder.mkdirs();
+            }
+
+            // 고유한 파일명 UUID 생성 (파일 이름 중복 방지)
+            String originalFileName = file.getOriginalFilename();
+            String storeFileName = UUID.randomUUID() + "_" + originalFileName;
+            Path targetPath = Paths.get(uploadPath + storeFileName);
+
+            // 파일 저장
+            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+
+            log.info("파일 저장 완료: {}", targetPath);
+            return storeFileName;
+        } catch (IOException e) {
+            log.error("파일 저장 중 오류 발생: {}", e.getMessage());
+            throw new RuntimeException("음성 파일 저장 실패", e);
+        }
+    }
 
     /* 특정 직무 연습 시작 로직 */
     public TrainingStartResponse startTraining(TrainingStartRequest request, User user) {

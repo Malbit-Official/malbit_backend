@@ -7,6 +7,7 @@ import com.example.demo.training.service.TrainingCategoryService;
 import com.example.demo.training.service.TrainingService;
 import lombok.RequiredArgsConstructor;
 import org.apache.coyote.Response;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -48,6 +49,16 @@ public class TrainingController {
         // 발음 분석과 다음 데이터 조회를 한 번에 처리해서 응답
         TrainingStepResponse response = trainingService.processStep(request, user);
         return ResponseEntity.ok(ApiResponse.success("단계가 갱신되었습니다.", response));
+    }
+
+    /* 실시간 음성 분석 API - AI 파이썬 서버와 연동 */
+    @PostMapping(value = "/analyze-voice", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<String>> analyzeVoice(
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @AuthenticationPrincipal User user
+    ) {
+        String result = trainingService.processVoice(file);
+        return ResponseEntity.ok(ApiResponse.success("음성 파일 분석이 시작되었습니다.", result));
     }
 
     /* 연습 종료 및 결과 저장 API */
