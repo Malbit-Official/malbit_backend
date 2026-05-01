@@ -11,3 +11,7 @@ fastapi
 uvicorn
 python-multipart
 accelerate
+
+librosa==0.10.1
+soundfile==0.12.1
+pooch==1.8.1
