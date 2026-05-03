@@ -13,7 +13,8 @@ from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 load_dotenv()
 
 TARGET_SR = 16000
-DEFAULT_MODEL_PATH = os.getenv("MODEL_PATH", ".\models\whisper-dysarthria-ko")
+DEFAULT_MODEL_PATH = "tepo6640/malbit_ai"  
+SUB_FOLDER = "model/whisper-dysarthria-ko"
 DEFAULT_LLM_MODEL = os.getenv("LLM_MODEL", "gpt-5-mini")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
@@ -43,16 +44,21 @@ def load_audio(audio_path: str, target_sr: int = 16000) -> np.ndarray:
 
 
 def load_asr_pipeline(model_path: str):
+
     model = AutoModelForSpeechSeq2Seq.from_pretrained(
         model_path,
-        torch_dtype=TORCH_DTYPE,
+        subfolder=SUB_FOLDER,
+        dtype=TORCH_DTYPE,
         low_cpu_mem_usage=True,
     )
 
     if torch.cuda.is_available():
         model.to(DEVICE)
 
-    processor = AutoProcessor.from_pretrained(model_path)
+    processor = AutoProcessor.from_pretrained(
+        model_path,
+        subfolder=SUB_FOLDER
+    )
 
     asr_pipe = pipeline(
         task="automatic-speech-recognition",

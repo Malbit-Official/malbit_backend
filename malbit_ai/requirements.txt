@@ -6,3 +6,8 @@ librosa
 numpy
 soundfile
 sentencepiece
+
+fastapi
+uvicorn
+python-multipart
+accelerate
