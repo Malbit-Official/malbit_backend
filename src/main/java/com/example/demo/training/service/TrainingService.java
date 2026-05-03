@@ -41,6 +41,9 @@ public class TrainingService {
     private final TrainingSessionRepository sessionRepository;
     private final StepResultRepository stepResultRepository;
 
+    private final LlmService llmService;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+
     private final String uploadPath = System.getProperty("user.dir") + "/uploads/";
     private final WebClient aiWebClient;
 
@@ -205,6 +208,41 @@ public class TrainingService {
         } catch (Exception e) {
             log.error("AI 서버 통신 중 에러 발생: {}", e.getMessage());
             return "AI 분석 실패: " + e.getMessage();
+        }
+    }
+
+    /* LLM 연동 및 저장 로직 */
+    @Transactional
+    public String processFullCycle(File savedFile, Long sessionId) {
+
+        // AI 서버로부터 분석 결과 수신
+        String jsonResponse = getAiAnalysis(savedFile);
+
+        try {
+            // JSON 문자열을 객체로 변환 (Jackson ObjectMapper 사용)
+            AiAnalysisResponse aiData = objectMapper.readValue(jsonResponse, AiAnalysisResponse.class);
+
+            // LLM(Claude 3)을 사용하여 문장 정제 요청
+            String finalRefinedText = llmService.refineSentence(aiData.getRawText());
+
+            TrainingSession session = sessionRepository.findById(sessionId)
+                    .orElseThrow(() -> new IllegalArgumentException("유요하지 않은 세션입니다. [ID: " + sessionId + "]"));
+            // DB 저장
+            StepResult result = StepResult.builder()
+                    .session(session)
+                    .step(session.getCurrentStep())
+                    .rawText(aiData.getRawText())
+                    .refinedText(finalRefinedText)
+                    .voiceFilePath(savedFile.getPath())
+                    .isPassed(true)
+                    .build();
+
+            stepResultRepository.save(result);
+
+            return finalRefinedText;
+        } catch (Exception e) {
+            log.error("에러 발생: {}", e.getMessage());
+            throw new RuntimeException("데이터 저장 및 정제 실패");
         }
     }
 
