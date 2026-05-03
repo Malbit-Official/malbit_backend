@@ -3,8 +3,10 @@ package com.example.demo.calendar.controller;
 import com.example.demo.calendar.dto.CalendarListResponse;
 import com.example.demo.calendar.dto.TaskManualRequest;
 import com.example.demo.calendar.dto.TaskUpdateRequest;
+import com.example.demo.calendar.dto.UpcomingTasksResponse;
 import com.example.demo.calendar.service.CalendarService;
 import com.example.demo.global.common.ApiResponse;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -60,6 +62,15 @@ public class CalendarController {
 
         calendarService.deleteTask(taskId);
         return ResponseEntity.ok(ApiResponse.success("해당 일정이 삭제되었습니다."));
+    }
+
+    /* 다가오는 일정 알림 조회 API */
+    @GetMapping("/upcoming")
+    public ResponseEntity<ApiResponse<UpcomingTasksResponse>> getUpcomingTasks(
+            @AuthenticationPrincipal String email) {
+
+        UpcomingTasksResponse response = calendarService.getUpcomingTasks(email);
+        return ResponseEntity.ok(ApiResponse.success("임박 일정 조회 성공", response));
     }
 
 }

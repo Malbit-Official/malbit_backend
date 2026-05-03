@@ -15,5 +15,5 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findAllByUserAndStartAtBetween(User user, LocalDateTime start, LocalDateTime end);
 
     // 마감이 임박한 일정 조회 (다가오는 일정용)
-    List<Task> findAllByUserAndStatAtAfterOrderByStarttAsc(User user, LocalDateTime now);
+    List<Task> findAllByUserAndStartAtAfterOrderByStartAtAsc(User user, LocalDateTime now);
 }
