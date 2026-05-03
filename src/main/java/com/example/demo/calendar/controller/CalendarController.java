@@ -2,6 +2,7 @@ package com.example.demo.calendar.controller;
 
 import com.example.demo.calendar.dto.CalendarListResponse;
 import com.example.demo.calendar.dto.TaskManualRequest;
+import com.example.demo.calendar.dto.TaskUpdateRequest;
 import com.example.demo.calendar.service.CalendarService;
 import com.example.demo.global.common.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +18,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class CalendarController {
 
-    private CalendarService calendarService;
+    private final CalendarService calendarService;
 
     /* 일정 수동 등록 API */
     @PostMapping("/manual")
@@ -39,4 +40,26 @@ public class CalendarController {
         List<CalendarListResponse> response = calendarService.getSchedules(email, queryDate);
         return ResponseEntity.ok(ApiResponse.success("일정 조회 성공", response));
     }
+
+    /* 일정 상세 수정 API */
+    @PatchMapping("/{taskId}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> updateTask(
+            @PathVariable Long taskId,
+            @RequestBody TaskUpdateRequest request) {
+
+        Long updateId = calendarService.updateTask(taskId, request);
+
+        return ResponseEntity.ok(ApiResponse.success("일정이 수정되었습니다.",
+                Map.of("task_id", updateId, "status", "updated")));
+
+    }
+
+    /* 일정 삭제 API */
+    @DeleteMapping("/{taskId}")
+    public ResponseEntity<ApiResponse<Object>> deleteTask(@PathVariable Long taskId) {
+
+        calendarService.deleteTask(taskId);
+        return ResponseEntity.ok(ApiResponse.success("해당 일정이 삭제되었습니다."));
+    }
+
 }
