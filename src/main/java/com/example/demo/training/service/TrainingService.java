@@ -135,9 +135,15 @@ public class TrainingService {
         List<StepResult> results = stepResultRepository.findAllBySession(session);
 
         // [자동 문구 생성] 성공한 단계의 '미리 정해진 문구'들만 리스트로 만듦
-        List<String> checks = results.stream()
-                .filter(StepResult::isPassed) // 성공한 단계만 필터링
-                .map(res -> res.getStep().getSuccessMessage()) // ScenarioStep에 successMessage 필드가 있어야 함
+        List<StepReviewDto> reviews = results.stream()
+                .map(res -> StepReviewDto.builder()
+                        .stepOrder(res.getStep().getStepOrder())
+                        .situation(res.getStep().getCurrentSituation())
+                        .rawText(res.getRawText())
+                        .refinedText(res.getRefinedText())
+                        .score(res.getScore())
+                        .isPassed(res.isPassed())
+                        .build())
                 .collect(Collectors.toList());
 
         // 평균 점수 계산
@@ -147,9 +153,9 @@ public class TrainingService {
 
         return TrainingResultResponse.builder()
                 .sessionId(session.getId())
-                .feedbackChecklist(checks) // DB 데이터 기반 자동 생성
+                .totalAvgScore((int) avgScore)
+                .stepReviews(reviews)
                 .evaluation(generateTotalEvaluation(avgScore)) // 점수 기반 총평 생성
-                .nextCategoryId(session.getCategory().getId() + 1)
                 .build();
 
     }
