@@ -2,6 +2,7 @@ package com.example.demo.calendar.service;
 
 import com.example.demo.calendar.dto.CalendarListResponse;
 import com.example.demo.calendar.dto.TaskManualRequest;
+import com.example.demo.calendar.dto.TaskUpdateRequest;
 import com.example.demo.calendar.repository.TaskRepository;
 import com.example.demo.entity.Task;
 import com.example.demo.entity.User;
@@ -25,6 +26,7 @@ public class CalendarService {
     private final UserRepository userRepository;
 
     /* 일정 수동 등록 로직 */
+    @Transactional
     public Long createManualTask(String email, TaskManualRequest request) {
 
         // 유저 조회
@@ -46,6 +48,7 @@ public class CalendarService {
     }
 
     /* 월간/주간 일정 조회 로직 */
+    @Transactional
     public List<CalendarListResponse> getSchedules(String email, String queryDate) {
 
         User user = userRepository.findByEmail(email)
@@ -76,5 +79,35 @@ public class CalendarService {
                                 .collect(Collectors.toList()))
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    /* 일정 상세 수정 로직 */
+    @Transactional
+    public Long updateTask(Long taskId, TaskUpdateRequest request) {
+
+        // 수정할 일정 조회
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 일정입니다. [ID: " + taskId + "]"));
+
+        // 엔티티 내부 메서드를 통한 정보 업데이트
+        task.update(
+                request.getContent(),
+                request.getCategory(),
+                request.getStart_at(),
+                request.getEnd_at()
+        );
+
+        return task.getTaskId();
+    }
+
+    /* 일정 삭제 로직 */
+    @Transactional
+    public void deleteTask(Long taskId) {
+
+        // 삭제 대상 존재 여부 확인 후 삭제
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 일정입니다. [ID: " + taskId + "]"));
+
+        taskRepository.delete(task);
     }
 }
