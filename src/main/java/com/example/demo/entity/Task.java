@@ -14,13 +14,18 @@ public class Task {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long taskId; // 할일ID (PK)
 
-    // 어떤 대화 로그이세ㅓ 파생되었는지 연결 (FK)
+    // 어떤 유저의 일정인지 직접 연결
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "log_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    // 어떤 대화 로그에서 파생되었는지 연결 (FK)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "log_id", nullable = true)
     private ConversationLog log;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "session_id", nullable = false)
+    @JoinColumn(name = "session_id", nullable = true)
     private ConversationSession session;
 
     @Column(nullable = false)
@@ -36,8 +41,9 @@ public class Task {
     private String category; // 업무 카테고리
 
     @Builder
-    public Task(ConversationLog log, ConversationSession session, String content,
+    public Task(User user, ConversationLog log, ConversationSession session, String content,
                 LocalDateTime startAt, LocalDateTime endAt, Boolean isCompleted, String category) {
+        this.user = user;
         this.log = log;
         this.session = session;
         this.content = content;
@@ -45,6 +51,14 @@ public class Task {
         this.endAt = endAt;
         this.isCompleted = (isCompleted != null) ? isCompleted : false;
         this.category = category;
+    }
+
+    // 일정 수정을 위한 비즈니스 메서드
+    public void update(String content, String category, LocalDateTime startAt, LocalDateTime endAt) {
+        if (content != null) this.content = content;
+        if (category != null) this.category = category;
+        if (startAt != null) this.startAt = startAt;
+        if (endAt != null) this.endAt = endAt;
     }
 
 }
