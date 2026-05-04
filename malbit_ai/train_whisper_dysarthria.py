@@ -138,12 +138,12 @@ def main():
 
     training_args = Seq2SeqTrainingArguments(
         output_dir=OUTPUT_DIR,
-        per_device_train_batch_size=2,
+        per_device_train_batch_size=4,
         per_device_eval_batch_size=2,
         gradient_accumulation_steps=8,
-        learning_rate=1e-5,
+        learning_rate=5e-6,
         warmup_steps=100,
-        num_train_epochs=3,
+        num_train_epochs=5,
         eval_strategy="steps",
         eval_steps=250,
         save_steps=250,

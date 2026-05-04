@@ -8,9 +8,14 @@ import com.example.demo.training.repository.TrainingCategoryRepository;
 import com.example.demo.training.repository.TrainingSessionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.File;
 import java.io.IOException;
@@ -18,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -35,38 +41,11 @@ public class TrainingService {
     private final TrainingSessionRepository sessionRepository;
     private final StepResultRepository stepResultRepository;
 
-    // 파일이 저장될 로컬 경로 (후에 S3으로 변경
+    private final LlmService llmService;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+
     private final String uploadPath = System.getProperty("user.dir") + "/uploads/";
-
-
-    /* 음성 파일 로컬에 저장 로직 */
-    public String processVoice(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("업로드된 음성 파일이 없습니다.");
-        }
-
-        try {
-            // 저장할 uploads 폴더가 없으면 생성
-            File folder = new File(uploadPath);
-            if (!folder.exists()) {
-                folder.mkdirs();
-            }
-
-            // 고유한 파일명 UUID 생성 (파일 이름 중복 방지)
-            String originalFileName = file.getOriginalFilename();
-            String storeFileName = UUID.randomUUID() + "_" + originalFileName;
-            Path targetPath = Paths.get(uploadPath + storeFileName);
-
-            // 파일 저장
-            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-
-            log.info("파일 저장 완료: {}", targetPath);
-            return storeFileName;
-        } catch (IOException e) {
-            log.error("파일 저장 중 오류 발생: {}", e.getMessage());
-            throw new RuntimeException("음성 파일 저장 실패", e);
-        }
-    }
+    private final WebClient aiWebClient;
 
     /* 특정 직무 연습 시작 로직 */
     public TrainingStartResponse startTraining(TrainingStartRequest request, User user) {
@@ -156,9 +135,15 @@ public class TrainingService {
         List<StepResult> results = stepResultRepository.findAllBySession(session);
 
         // [자동 문구 생성] 성공한 단계의 '미리 정해진 문구'들만 리스트로 만듦
-        List<String> checks = results.stream()
-                .filter(StepResult::isPassed) // 성공한 단계만 필터링
-                .map(res -> res.getStep().getSuccessMessage()) // ScenarioStep에 successMessage 필드가 있어야 함
+        List<StepReviewDto> reviews = results.stream()
+                .map(res -> StepReviewDto.builder()
+                        .stepOrder(res.getStep().getStepOrder())
+                        .situation(res.getStep().getCurrentSituation())
+                        .rawText(res.getRawText())
+                        .refinedText(res.getRefinedText())
+                        .score(res.getScore())
+                        .isPassed(res.isPassed())
+                        .build())
                 .collect(Collectors.toList());
 
         // 평균 점수 계산
@@ -168,11 +153,103 @@ public class TrainingService {
 
         return TrainingResultResponse.builder()
                 .sessionId(session.getId())
-                .feedbackChecklist(checks) // DB 데이터 기반 자동 생성
+                .totalAvgScore((int) avgScore)
+                .stepReviews(reviews)
                 .evaluation(generateTotalEvaluation(avgScore)) // 점수 기반 총평 생성
-                .nextCategoryId(session.getCategory().getId() + 1)
                 .build();
 
+    }
+
+    /* 음성 파일 로컬에 저장 로직 */
+    public File processVoice(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("업로드된 음성 파일이 없습니다.");
+        }
+
+        try {
+            // 저장할 uploads 폴더가 없으면 생성
+            File folder = new File(uploadPath);
+            if (!folder.exists()) {
+                folder.mkdirs();
+            }
+
+            // 고유한 파일명 UUID 생성 (파일 이름 중복 방지)
+            String originalFileName = file.getOriginalFilename();
+            String storeFileName = UUID.randomUUID() + "_" + originalFileName;
+
+            File targetFile = new File(folder, storeFileName);
+            Path targetPath = targetFile.toPath();
+
+            // 파일 저장
+            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+
+            log.info("파일 저장 완료: {}", targetPath);
+
+            return targetFile;
+        } catch (IOException e) {
+            log.error("파일 저장 중 오류 발생: {}", e.getMessage());
+            throw new RuntimeException("음성 파일 저장 실패", e);
+        }
+    }
+
+    /* 저장된 음성 파일명을 전달하여 AI 분석 결과(JSON)를 받아오는 로직 */
+    public String getAiAnalysis(File savedFile) {
+        log.info("AI 서버 분석 요청 시작: {}", savedFile.getName());
+        try {
+            FileSystemResource resource = new FileSystemResource(savedFile);
+
+            MultipartBodyBuilder builder = new MultipartBodyBuilder();
+            builder.part("file", resource);
+
+            MultiValueMap<String, HttpEntity<?>> multipartBody = builder.build();
+
+            return aiWebClient.post()
+                    .uri("/analyze")
+                    .bodyValue(multipartBody)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    //.timeout(Duration.ofMinutes(3))
+                    .block();
+
+        } catch (Exception e) {
+            log.error("AI 서버 통신 중 에러 발생: {}", e.getMessage());
+            return "AI 분석 실패: " + e.getMessage();
+        }
+    }
+
+    /* LLM 연동 및 저장 로직 */
+    @Transactional
+    public String processFullCycle(File savedFile, Long sessionId) {
+
+        // AI 서버로부터 분석 결과 수신
+        String jsonResponse = getAiAnalysis(savedFile);
+
+        try {
+            // JSON 문자열을 객체로 변환 (Jackson ObjectMapper 사용)
+            AiAnalysisResponse aiData = objectMapper.readValue(jsonResponse, AiAnalysisResponse.class);
+
+            // LLM(Claude 3)을 사용하여 문장 정제 요청
+            String finalRefinedText = llmService.refineSentence(aiData.getRawText());
+
+            TrainingSession session = sessionRepository.findById(sessionId)
+                    .orElseThrow(() -> new IllegalArgumentException("유요하지 않은 세션입니다. [ID: " + sessionId + "]"));
+            // DB 저장
+            StepResult result = StepResult.builder()
+                    .session(session)
+                    .step(session.getCurrentStep())
+                    .rawText(aiData.getRawText())
+                    .refinedText(finalRefinedText)
+                    .voiceFilePath(savedFile.getPath())
+                    .isPassed(true)
+                    .build();
+
+            stepResultRepository.save(result);
+
+            return finalRefinedText;
+        } catch (Exception e) {
+            log.error("에러 발생: {}", e.getMessage());
+            throw new RuntimeException("데이터 저장 및 정제 실패");
+        }
     }
 
     /* 발음 유사도 계산 알고리즘 (임시 구현) */

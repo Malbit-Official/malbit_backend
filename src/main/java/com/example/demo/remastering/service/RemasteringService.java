@@ -1,48 +1,71 @@
 package com.example.demo.remastering.service;
 
+import com.example.demo.conversation.service.ConversationService;
+import com.example.demo.entity.ConversationLog;
+import com.example.demo.remastering.dto.AiServerResponseDto;
 import com.example.demo.remastering.dto.RemasteringLogResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Service
+@RequiredArgsConstructor
 public class RemasteringService {
 
-    private final AtomicLong sequence = new AtomicLong(1L);
+    private final WebClient webClient; // AI 서버와 통신용
+    private final ConversationService conversationService; // DB 저장용
 
-    public RemasteringLogResponse remaster(
-            Long sessionId,
+    public Mono<RemasteringLogResponse> remaster(
+            String email, // 세션 ID 대신 유저 이메일로 처리
             MultipartFile audioFile,
             String preferredTone
     ) {
-        long logId = sequence.getAndIncrement();
+        long startTime = System.currentTimeMillis();
 
-        String originalSpeech = "결제... 해줄... 거야?";
-        String refinedText = buildMockRefinedText(preferredTone);
-        int latencyMs = ThreadLocalRandom.current().nextInt(700, 1201);
+        // AI 서버(FastAPI)로 보낼 멀티파트 데이터 구성
+        MultipartBodyBuilder bodyBuilder = new MultipartBodyBuilder();
+        bodyBuilder.part("file", audioFile.getResource());
 
-        return new RemasteringLogResponse(
-                logId,
-                originalSpeech,
-                refinedText,
-                latencyMs
-        );
-    }
-
-    private String buildMockRefinedText(String preferredTone) {
-        if (preferredTone == null || preferredTone.isBlank()) {
-            return "결제 도와드릴까요?";
+        // 말투 설정
+        if (preferredTone != null && !preferredTone.isBlank()) {
+            bodyBuilder.part("preferred_tone", preferredTone);
         }
 
-        String tone = preferredTone.trim().toLowerCase();
+        // AI 서버 호출 및 응답 처리
+        return webClient.post()
+                .uri("/analyze") // FastAPI의 엔드포인트
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(BodyInserters.fromMultipartData(bodyBuilder.build()))
+                .retrieve()
+                .bodyToMono(AiServerResponseDto.class)
+                .map(aiRes -> {
+                    long latency = System.currentTimeMillis() - startTime;
 
-        return switch (tone) {
-            case "gentle", "soft", "부드럽게" -> "결제 도와드릴까요?";
-            case "formal", "정중하게" -> "결제를 도와드릴까요?";
-            case "friendly", "친근하게" -> "결제 도와드릴까요?";
-            default -> "결제 도와드릴까요?";
-        };
+                    // ConversationService를 통해 DB에 저장
+                    ConversationLog savedLog = conversationService.saveResult(
+                            email,
+                            aiRes.getRawText(),
+                            aiRes.getRefinedText(),
+                            latency
+                    );
+
+                    // 응답 생성
+                    return new RemasteringLogResponse(
+                            savedLog.getLogId(),
+                            savedLog.getSttOrigin(),
+                            savedLog.getRefinedText(),
+                            (int) latency
+                    );
+                });
     }
 }
+
+

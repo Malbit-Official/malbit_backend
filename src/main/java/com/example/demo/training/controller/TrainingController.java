@@ -11,7 +11,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.util.List;
 
 @RestController
@@ -51,14 +53,21 @@ public class TrainingController {
         return ResponseEntity.ok(ApiResponse.success("단계가 갱신되었습니다.", response));
     }
 
-    /* 실시간 음성 분석 API - AI 파이썬 서버와 연동 */
+    /* 실시간 음성 분석 API - AI 파이썬 서버와 연동 + LLM 정제 + DB 저장 */
     @PostMapping(value = "/analyze-voice", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<String>> analyzeVoice(
-            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("sessionId") Long sessionId,
             @AuthenticationPrincipal User user
     ) {
-        String result = trainingService.processVoice(file);
-        return ResponseEntity.ok(ApiResponse.success("음성 파일 분석이 시작되었습니다.", result));
+        // 로컬에 파일 저장
+        File savedFile = trainingService.processVoice(file);
+
+        // 파이썬 AI 서버에 분석 요청
+        String finalRefinedText = trainingService.processFullCycle(savedFile, sessionId);
+
+        // 최종 분석 결과 반환
+        return ResponseEntity.ok(ApiResponse.success("음성 분석 및 문장 정제가 완료되었습니다.", finalRefinedText));
     }
 
     /* 연습 종료 및 결과 저장 API */

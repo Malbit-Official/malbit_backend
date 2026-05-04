@@ -8,13 +8,13 @@ import torch
 from dotenv import load_dotenv
 from openai import OpenAI
 from scipy.io import wavfile
-from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
+from transformers import WhisperForConditionalGeneration, AutoProcessor, pipeline
 
 load_dotenv()
 
 TARGET_SR = 16000
 DEFAULT_MODEL_PATH = "tepo6640/malbit_ai"  
-SUB_FOLDER = "model/whisper-dysarthria-ko"
+SUB_FOLDER = "model/whisper-dysarthria-ko/checkpoint-5500"
 DEFAULT_LLM_MODEL = os.getenv("LLM_MODEL", "gpt-5-mini")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
@@ -23,7 +23,7 @@ TORCH_DTYPE = torch.float16 if torch.cuda.is_available() else torch.float32
 
 
 def load_audio(audio_path: str, target_sr: int = 16000) -> np.ndarray:
-    sr, audio = wavfile.read(audio_path)
+    audio, _ = librosa.load(audio_path, sr=target_sr)
 
     if len(audio.shape) > 1:
         audio = np.mean(audio, axis=1)
@@ -45,7 +45,7 @@ def load_audio(audio_path: str, target_sr: int = 16000) -> np.ndarray:
 
 def load_asr_pipeline(model_path: str):
 
-    model = AutoModelForSpeechSeq2Seq.from_pretrained(
+    model = WhisperForConditionalGeneration.from_pretrained(
         model_path,
         subfolder=SUB_FOLDER,
         dtype=TORCH_DTYPE,
@@ -57,7 +57,7 @@ def load_asr_pipeline(model_path: str):
 
     processor = AutoProcessor.from_pretrained(
         model_path,
-        subfolder=SUB_FOLDER
+        subfolder="model/whisper-dysarthria-ko"
     )
 
     asr_pipe = pipeline(
@@ -97,19 +97,31 @@ def refine_text_with_llm(raw_text: str, llm_model: str) -> str:
         client = OpenAI(api_key=OPENAI_API_KEY)
 
         prompt = f"""
-너는 구음장애 화자의 발화를 자연스럽고 읽기 쉬운 한국어 문장으로 복원하는 시스템이다.
+        ## Role
+        You are "Malbbit," a professional AI communication assistant specialized in reconstructing dysarthric speech (motor speech disorders) into clear, natural business Korean.
 
-규칙:
-1. 입력은 STT 결과다.
-2. 화자의 의도를 유지한다.
-3. 의미를 과도하게 지어내지 않는다.
-4. 확실하지 않은 부분은 원문을 최대한 유지한다.
-5. 맞춤법과 띄어쓰기는 자연스럽게 보정한다.
-6. 출력은 복원된 최종 문장만 한다.
+        ## Instructions
+        1. **Deduplicate & Clean**: Dysarthric speech often results in meaningless repetitions. Merge repeated words or phrases into a single, natural instance.
+        2. **Handle Hallucinations**: STT often produces random words like "Christmas," "Subway," or "Life" when it fails to recognize slurred speech. If a word is contextually nonsensical, infer the most plausible business term based on phonetic similarity or omit it.
+        3. **Contextual Reconstruction**: Restore the speaker's original intent into a professional register (Polite/Honorific Korean). 
+        4. **Minimal Intervention**: Do not add new information or creatively expand the sentence. Keep the output concise and relevant to a workplace setting.
+        5. **Strict Output**: Return ONLY the final corrected Korean sentence. No explanations, no English, no conversational filler.
 
-입력:
-{raw_text}
-"""
+        ## Examples (Few-shot)
+        - Input: "회의 회의 회의 시작 시작 할게요"
+        - Output: "회의 시작하도록 하겠습니다."
+
+        - Input: "오늘 오늘 크리스마스 자료 준비했어요" (Context: Phonetic similarity '커뮤니케이션')
+        - Output: "오늘 커뮤니케이션 자료 준비했습니다."
+
+        - Input: "지하철 타고 보니 배달하는 사람이 주문서" (Context: Unrelated hallucination)
+        - Output: "주문서 확인 부탁드립니다." (Or keep it as original if intent is unclear but clean the structure)
+
+        ## Current STT Input to Process:
+        {raw_text}
+
+        ## Final Reconstructed Korean:
+        """
 
         response = client.responses.create(
             model=llm_model,
