@@ -2,36 +2,48 @@ package com.example.demo.training.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
+import java.util.Map;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class LlmService {
+    private final RestTemplate restTemplate = new RestTemplate();
+    private final WebClient webClient;
 
-    /* AI 분석 원문을 Claude 3 Sonnet을 통해 정제하는 로직 */
+    @Value("${ai.server.url}")
+    private String aiServerUrl;
+
+    /* 문장 정제 요청 로직 */
+    // 파이썬 AI 서버 혹은 AWS Bedrock(Claude 3)과 통신하여 사용자의 발화를 정제된 문장으로 변합니다.
     public String refineSentence(String rawText) {
         if (rawText == null || rawText.isBlank()) {
-            log.warn("[LLM Warning] 정제할 텍스트가 비어있습니다.");
             return "";
         }
 
-        log.info("[LLM Request] 문장 정제 시작: {}", rawText);
-
         try {
-            // TODO : AWS 계정 복구 후 Bedrock Client 호출 로직 추가 예정
-            // 1. Bedrock Runtime Client 설정
-            // 2. Claude 3용 프롬프트 생성 (반복 문구 제거, 자연스러운 문장 교정 등)
-            // 3. 모델 호출 및 결과 파싱
+            log.info("[LLM Request] 문장 정제 요청 시작: {}", rawText);
 
-            // 임시 로직
-            String mockRefined = rawText.replaceAll("(.+)\\1+", "$1");
+            // 비동기 통신을 동기적으로 처리
+            Map<String, Object> response = webClient.post()
+                    .uri("/analyze")
+                    .bodyValue(Map.of("text", rawText))
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .block();
 
-            log.info("[LLM Success] 문장 정제 완료");
-            return mockRefined;
+            if (response != null && "success".equals(response.get("status"))) {
+                return (String) response.get("refined_text");
+            }
+
+            return rawText;
 
         } catch (Exception e) {
-            log.error("[LLM Error] Claude 3 호출 중 예외 발생: {}", e.getMessage());
+            log.error("[LLM Error] 문장 정제 중 오류 발생: {}", e.getMessage());
             return rawText;
         }
     }

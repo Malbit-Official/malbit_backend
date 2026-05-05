@@ -16,31 +16,10 @@ spring:
       hibernate:
         format_sql: true
 
-  jwt:
-    secret: ${JWT_SECRET}
-    expiration-time: 86400000
-
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
-    properties:
-      sender-name: ${MAIL_SENDER_NAME}
-      mail:
-        smtp:
-          auth: true
-          timeout: 5000
-          starttls:
-            enable: true
-            required: true
-  
-  logging:
-  level:
-    root: INFO
-    org.springframework.security: DEBUG     # 시큐리티 흐름을 상세히 보여줌
-    org.springframework.web: DEBUG          # HTTP 요청/응답 확인
-    com.example.demo: DEBUG                 # 코드 디버깅
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
 
   security:
     oauth2:
@@ -55,7 +34,7 @@ spring:
             client-secret: ${KAKAO_CLIENT_SECRET}
             client-authentication-method: client_secret_post
             authorization-grant-type: authorization_code
-            redirect-uri: http://localhost:8080/login/oauth2/code/kakao
+            redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8080/login/oauth2/code/kakao}
             client-name: Kakao
         provider:
           kakao:
@@ -63,3 +42,37 @@ spring:
             token-uri: https://kauth.kakao.com/oauth/token
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
+
+# AI 서버 설정 (LlmService에서 사용)
+ai:
+  server:
+    url: ${AI_SERVER_URL}
+
+# JWT 보안 설정
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-time: 86400000
+
+# 메일 발송 설정
+mail:
+  host: smtp.gmail.com
+  port: 587
+  username: ${MAIL_USERNAME}
+  password: ${MAIL_PASSWORD}
+  properties:
+    sender-name: ${MAIL_SENDER_NAME}
+    mail:
+      smtp:
+        auth: true
+        timeout: 5000
+        starttls:
+          enable: true
+          required: true
+
+# 로깅 설정 (최상위 계층)
+logging:
+  level:
+    root: INFO
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+    com.example.demo: DEBUG

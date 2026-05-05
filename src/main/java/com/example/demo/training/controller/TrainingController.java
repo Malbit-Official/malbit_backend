@@ -36,9 +36,9 @@ public class TrainingController {
     @PostMapping("/start")
     public ResponseEntity<ApiResponse<TrainingStartResponse>> startTraining(
             @RequestBody TrainingStartRequest request,
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal String email
             ) {
-        TrainingStartResponse response = trainingService.startTraining(request, user);
+        TrainingStartResponse response = trainingService.startTraining(request, email);
         return ResponseEntity.ok(ApiResponse.success("연습 세션이 시작되었습니다.", response));
     }
 
@@ -46,25 +46,21 @@ public class TrainingController {
     @PostMapping("/step")
     public ResponseEntity<ApiResponse<TrainingStepResponse>> proceedStep(
             @RequestBody TrainingStepRequest request,
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal String email
     ) {
         // 발음 분석과 다음 데이터 조회를 한 번에 처리해서 응답
-        TrainingStepResponse response = trainingService.processStep(request, user);
+        TrainingStepResponse response = trainingService.processStep(request, email);
         return ResponseEntity.ok(ApiResponse.success("단계가 갱신되었습니다.", response));
     }
 
-    /* 실시간 음성 분석 API - AI 파이썬 서버와 연동 + LLM 정제 + DB 저장 */
+    /* 실시간 음성 분석 API */
     @PostMapping(value = "/analyze-voice", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<String>> analyzeVoice(
-            @RequestParam("file") MultipartFile file,
+            @RequestParam("audio_file") MultipartFile audioFile,
             @RequestParam("sessionId") Long sessionId,
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal String email
     ) {
-        // 로컬에 파일 저장
-        File savedFile = trainingService.processVoice(file);
-
-        // 파이썬 AI 서버에 분석 요청
-        String finalRefinedText = trainingService.processFullCycle(savedFile, sessionId);
+        String finalRefinedText = trainingService.processFullCycle(audioFile, sessionId, email);
 
         // 최종 분석 결과 반환
         return ResponseEntity.ok(ApiResponse.success("음성 분석 및 문장 정제가 완료되었습니다.", finalRefinedText));
@@ -74,9 +70,9 @@ public class TrainingController {
     @PostMapping("/finish/{sessionId}")
     public ResponseEntity<ApiResponse<TrainingResultResponse>> finishTraining(
             @PathVariable Long sessionId,
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal String email
     ) {
-        TrainingResultResponse response = trainingService.finishTraining(sessionId, user);
+        TrainingResultResponse response = trainingService.finishTraining(sessionId, email);
         return ResponseEntity.ok(ApiResponse.success("연습이 완료되었습니다.", response));
     }
 }

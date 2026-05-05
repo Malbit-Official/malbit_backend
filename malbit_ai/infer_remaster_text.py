@@ -1,14 +1,12 @@
-import argparse
 import os
 from pathlib import Path
-
 import librosa
 import numpy as np
 import torch
 from dotenv import load_dotenv
-from openai import OpenAI
-from scipy.io import wavfile
 from transformers import WhisperForConditionalGeneration, AutoProcessor, pipeline
+import boto3
+import json
 
 load_dotenv()
 
@@ -16,31 +14,17 @@ TARGET_SR = 16000
 DEFAULT_MODEL_PATH = "tepo6640/malbit_ai"  
 SUB_FOLDER = "model/whisper-dysarthria-ko/checkpoint-5500"
 DEFAULT_LLM_MODEL = os.getenv("LLM_MODEL", "gpt-5-mini")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 TORCH_DTYPE = torch.float16 if torch.cuda.is_available() else torch.float32
 
-
 def load_audio(audio_path: str, target_sr: int = 16000) -> np.ndarray:
-    audio, _ = librosa.load(audio_path, sr=target_sr)
-
-    if len(audio.shape) > 1:
-        audio = np.mean(audio, axis=1)
-
-    if audio.dtype == np.int16:
-        audio = audio.astype(np.float32) / 32768.0
-    elif audio.dtype == np.int32:
-        audio = audio.astype(np.float32) / 2147483648.0
-    elif audio.dtype == np.uint8:
-        audio = (audio.astype(np.float32) - 128.0) / 128.0
-    else:
-        audio = audio.astype(np.float32)
+    audio, _ = librosa.load(audio_path, None)
 
     if sr != target_sr:
         audio = librosa.resample(audio, orig_sr=sr, target_sr=target_sr)
 
-    return audio
+    return audio.astype(np.float32)
 
 
 def load_asr_pipeline(model_path: str):
@@ -60,7 +44,7 @@ def load_asr_pipeline(model_path: str):
         subfolder="model/whisper-dysarthria-ko"
     )
 
-    asr_pipe = pipeline(
+    return pipeline(
         task="automatic-speech-recognition",
         model=model,
         tokenizer=processor.tokenizer,
@@ -68,34 +52,21 @@ def load_asr_pipeline(model_path: str):
         torch_dtype=TORCH_DTYPE,
         device=0 if torch.cuda.is_available() else -1,
         chunk_length_s=30,
-        stride_length_s=5,
         return_timestamps=True,
-        generate_kwargs={
-            "language": "ko",
-            "task": "transcribe",
-        },
     )
-    return asr_pipe
-
-
-def transcribe_audio(audio_path: str, model_path: str) -> str:
-    asr_pipe = load_asr_pipeline(model_path)
-    audio_array = load_audio(audio_path, TARGET_SR)
-    result = asr_pipe({"array": audio_array, "sampling_rate": TARGET_SR})
-
-    if isinstance(result, dict):
-        if "text" in result:
-            return result["text"].strip()
-    return str(result).strip()
 
 
 def refine_text_with_llm(raw_text: str, llm_model: str) -> str:
-    if not OPENAI_API_KEY:
-        return raw_text
+    if not raw_text.strip():
+        return ""
 
     try:
-        client = OpenAI(api_key=OPENAI_API_KEY)
+        client = boto3.client("bedrock-runtime", region_name="ap-northeast-2")
 
+        # Haiku 모델 ID
+        model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+
+        # Claude 3용 프롬프트 구성
         prompt = f"""
         ## Role
         You are "Malbbit," a professional AI communication assistant specialized in reconstructing dysarthric speech (motor speech disorders) into clear, natural business Korean.
@@ -123,50 +94,26 @@ def refine_text_with_llm(raw_text: str, llm_model: str) -> str:
         ## Final Reconstructed Korean:
         """
 
-        response = client.responses.create(
-            model=llm_model,
-            input=prompt,
-            max_output_tokens=150,
-        )
+        native_request = {
+            "anthropic_version": "bedrock-2023-05-31",
+            "max_tokens": 500,
+            "temperature": 0, # 정확도를 위해 0으로 설정
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [{"type": "text", "text": prompt}]
+                }
+            ],
+        }
 
-        if hasattr(response, "output_text") and response.output_text:
-            return response.output_text.strip()
-
-        return response.output[0].content[0].text.strip()
+        response = client.invoke_model(model_id=model_id, body=json.dumps(native_request))
+        response_body = json.loads(response["body"].read())
+        
+        return response_body["content"][0]["text"].strip()
 
     except Exception as e:
-        print(f"[LLM SKIP] {e}")
-        return raw_text
-
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--audio", required=True, help="입력 wav 파일 경로")
-    parser.add_argument("--model", default=DEFAULT_MODEL_PATH, help="학습된 Whisper 모델 경로")
-    parser.add_argument("--llm-model", default=DEFAULT_LLM_MODEL, help="리마스터링에 쓸 LLM 이름")
-    args = parser.parse_args()
-
-    audio_path = Path(args.audio)
-    model_path = Path(args.model)
-
-    if not audio_path.exists():
-        raise FileNotFoundError(f"audio file not found: {audio_path}")
-
-    if not model_path.exists():
-        raise FileNotFoundError(f"model path not found: {model_path}")
-
-    print("torch.cuda.is_available() =", torch.cuda.is_available())
-    if torch.cuda.is_available():
-        print("GPU =", torch.cuda.get_device_name(0))
-
-    raw_text = transcribe_audio(str(audio_path), str(model_path))
-    refined_text = refine_text_with_llm(raw_text, args.llm_model)
-
-    print("\n=== ASR 원문 ===")
-    print(raw_text)
-    print("\n=== 리마스터링 결과 ===")
-    print(refined_text)
-
+        print(f"[Bedrock LLM Error] {e}")
+        return raw_text 
 
 if __name__ == "__main__":
-    main()
+    print("이 파일은 라이브러리용입니다. app.py를 실행하세요.")

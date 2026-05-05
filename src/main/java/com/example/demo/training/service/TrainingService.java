@@ -6,6 +6,7 @@ import com.example.demo.training.repository.ScenarioStepRepository;
 import com.example.demo.training.repository.StepResultRepository;
 import com.example.demo.training.repository.TrainingCategoryRepository;
 import com.example.demo.training.repository.TrainingSessionRepository;
+import com.example.demo.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.FileSystemResource;
@@ -21,10 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -40,6 +38,7 @@ public class TrainingService {
     private final ScenarioStepRepository stepRepository;
     private final TrainingSessionRepository sessionRepository;
     private final StepResultRepository stepResultRepository;
+    private final UserRepository userRepository;
 
     private final LlmService llmService;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
@@ -48,7 +47,10 @@ public class TrainingService {
     private final WebClient aiWebClient;
 
     /* 특정 직무 연습 시작 로직 */
-    public TrainingStartResponse startTraining(TrainingStartRequest request, User user) {
+    public TrainingStartResponse startTraining(TrainingStartRequest request, String email) {
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
 
         // 카테고리 존재 여부 확인
         TrainingCategory category = categoryRepository.findById(request.getCategoryId())
@@ -73,13 +75,13 @@ public class TrainingService {
     }
 
     /* 발음 분석 및 다음 단계 진행 로직 */
-    public TrainingStepResponse processStep(TrainingStepRequest request, User user) {
+    public TrainingStepResponse processStep(TrainingStepRequest request, String email) {
 
         // 현재 세션 및 유저 검증
         TrainingSession session = sessionRepository.findById(request.getSessionId())
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 세션입니다."));
 
-        if(!session.getUser().getUserId().equals(user.getUserId())) {
+        if(!session.getUser().getEmail().equals(email)) {
             throw new SecurityException("본인의 연습 세션만 진행할 수 있습니다.");
         }
 
@@ -122,7 +124,7 @@ public class TrainingService {
 
 
     /* 연습 종료 및 결과 저장 로직 */
-    public TrainingResultResponse finishTraining(Long sessionId, User user) {
+    public TrainingResultResponse finishTraining(Long sessionId, String email) {
 
         // 세션 조회 및 검증
         TrainingSession session = sessionRepository.findById(sessionId)
@@ -217,23 +219,31 @@ public class TrainingService {
         }
     }
 
-    /* LLM 연동 및 저장 로직 */
+    /* 실시간 음성 분석 및 전체 사이클 처리 로직 */
     @Transactional
-    public String processFullCycle(File savedFile, Long sessionId) {
+    public String processFullCycle(MultipartFile audioFile, Long sessionId, String email) {
 
-        // AI 서버로부터 분석 결과 수신
-        String jsonResponse = getAiAnalysis(savedFile);
+        // 세션 및 유저 검증
+        TrainingSession session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 세션입니다."));
+
+        if (!session.getUser().getEmail().equals(email)) {
+            throw new SecurityException("본인의 연습 세션만 진행할 수 있습니다.");
+        }
+
+        // 파일 로컬 저장
+        File savedFile = processVoice(audioFile);
 
         try {
+            // AI 서버 분석 요청
+            String jsonResponse = getAiAnalysis(savedFile);
+
             // JSON 문자열을 객체로 변환 (Jackson ObjectMapper 사용)
             AiAnalysisResponse aiData = objectMapper.readValue(jsonResponse, AiAnalysisResponse.class);
 
-            // LLM(Claude 3)을 사용하여 문장 정제 요청
-            String finalRefinedText = llmService.refineSentence(aiData.getRawText());
+            // 결과 저장
+            String finalRefinedText = aiData.getRefinedText();
 
-            TrainingSession session = sessionRepository.findById(sessionId)
-                    .orElseThrow(() -> new IllegalArgumentException("유요하지 않은 세션입니다. [ID: " + sessionId + "]"));
-            // DB 저장
             StepResult result = StepResult.builder()
                     .session(session)
                     .step(session.getCurrentStep())
@@ -241,14 +251,24 @@ public class TrainingService {
                     .refinedText(finalRefinedText)
                     .voiceFilePath(savedFile.getPath())
                     .isPassed(true)
+                    .score(85) // 임시 점수
                     .build();
 
             stepResultRepository.save(result);
 
+            // 다음 단계로 세션 업데이트
+            int nextOrder = session.getCurrentStep().getStepOrder() + 1;
+            stepRepository.findByCategory_IdAndStepOrder(session.getCategory().getId(), nextOrder)
+                    .ifPresent(session::updateStep);
+
             return finalRefinedText;
+
         } catch (Exception e) {
-            log.error("에러 발생: {}", e.getMessage());
+            log.error("AI 분석 결과 처리 실패: {}", e.getMessage());
             throw new RuntimeException("데이터 저장 및 정제 실패");
+        } finally {
+            // 분석 완료 후 파일 삭제
+            // if (savedFile.exists()) savedFile.delete();
         }
     }
 
