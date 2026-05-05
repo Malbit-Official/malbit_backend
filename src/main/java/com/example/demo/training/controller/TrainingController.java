@@ -55,15 +55,15 @@ public class TrainingController {
 
     /* 실시간 음성 분석 API */
     @PostMapping(value = "/analyze-voice", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse<String>> analyzeVoice(
+    public ResponseEntity<ApiResponse<TrainingStepResponse>> analyzeVoice(
             @RequestParam("audio_file") MultipartFile audioFile,
             @RequestParam("sessionId") Long sessionId,
             @AuthenticationPrincipal String email
     ) {
-        String finalRefinedText = trainingService.processFullCycle(audioFile, sessionId, email);
+        TrainingStepResponse response = trainingService.processFullCycle(audioFile, sessionId, email);
 
         // 최종 분석 결과 반환
-        return ResponseEntity.ok(ApiResponse.success("음성 분석 및 문장 정제가 완료되었습니다.", finalRefinedText));
+        return ResponseEntity.ok(ApiResponse.success("음성 분석 및 문장 정제가 완료되었습니다.", response));
     }
 
     /* 연습 종료 및 결과 저장 API */

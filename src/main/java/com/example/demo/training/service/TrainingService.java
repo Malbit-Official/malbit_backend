@@ -28,6 +28,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+
 @Slf4j
 @Service
 @Transactional
@@ -221,7 +222,7 @@ public class TrainingService {
 
     /* 실시간 음성 분석 및 전체 사이클 처리 로직 */
     @Transactional
-    public String processFullCycle(MultipartFile audioFile, Long sessionId, String email) {
+    public TrainingStepResponse processFullCycle(MultipartFile audioFile, Long sessionId, String email) {
 
         // 세션 및 유저 검증
         TrainingSession session = sessionRepository.findById(sessionId)
@@ -237,38 +238,53 @@ public class TrainingService {
         try {
             // AI 서버 분석 요청
             String jsonResponse = getAiAnalysis(savedFile);
-
-            // JSON 문자열을 객체로 변환 (Jackson ObjectMapper 사용)
             AiAnalysisResponse aiData = objectMapper.readValue(jsonResponse, AiAnalysisResponse.class);
 
-            // 결과 저장
-            String finalRefinedText = aiData.getRefinedText();
+            String rawText = aiData.getRawText();
+            String refinedText = aiData.getRefinedText();
+            ScenarioStep currentStep = session.getCurrentStep();
+
+            int score = calculateSimilarity(currentStep.getHintText(), rawText);
 
             StepResult result = StepResult.builder()
                     .session(session)
-                    .step(session.getCurrentStep())
-                    .rawText(aiData.getRawText())
-                    .refinedText(finalRefinedText)
+                    .step(currentStep)
+                    .rawText(rawText)
+                    .refinedText(refinedText)
                     .voiceFilePath(savedFile.getPath())
-                    .isPassed(true)
-                    .score(85) // 임시 점수
+                    .isPassed(score >= 70)
+                    .score(score)
                     .build();
 
             stepResultRepository.save(result);
 
-            // 다음 단계로 세션 업데이트
+            // 다음 단계 조회 및 세션 업데이트
             int nextOrder = session.getCurrentStep().getStepOrder() + 1;
-            stepRepository.findByCategory_IdAndStepOrder(session.getCategory().getId(), nextOrder)
-                    .ifPresent(session::updateStep);
+            Optional<ScenarioStep> nextStepOpt = stepRepository.findByCategory_IdAndStepOrder(
+                    session.getCategory().getId(), nextOrder
+            );
 
-            return finalRefinedText;
+            nextStepOpt.ifPresent(session::updateStep);
+
+            return TrainingStepResponse.builder()
+                    .score(score)
+                    .feedback(generateFeedback(score))
+                    .retryScript(currentStep.getRetryScript())
+                    .refinedText(refinedText)
+                    .nextStepOrder(nextStepOpt.map(ScenarioStep::getStepOrder).orElse(null))
+                    .nextSituation(nextStepOpt.map(ScenarioStep::getCurrentSituation).orElse("연습 종료"))
+                    .nextGuestQuestion(nextStepOpt.map(ScenarioStep::getGuestScript).orElse(null))
+                    .nextHintText(nextStepOpt.map(ScenarioStep::getHintText).orElse(null))
+                    .nextMissionText(nextStepOpt.map(ScenarioStep::getMissionText).orElse(null))
+                    .isLast(nextStepOpt.isEmpty())
+                    .build();
 
         } catch (Exception e) {
             log.error("AI 분석 결과 처리 실패: {}", e.getMessage());
-            throw new RuntimeException("데이터 저장 및 정제 실패");
+            throw new RuntimeException("음성 분석 처리 중 오류가 발생했습니다.");
         } finally {
-            // 분석 완료 후 파일 삭제
-            // if (savedFile.exists()) savedFile.delete();
+            // 보안 및 용량 관리를 위해 분석 후 임시 파일 삭제 권장
+            if (savedFile.exists()) savedFile.delete();
         }
     }
 

@@ -11,6 +11,7 @@ public class TrainingStepResponse {
     private Integer score; // 발음 유사도 점수 (0~100)
     private String feedback; // AI 피드백 ("잘하셨어요!" 등의 간단한 피드백)
     private String retryScript; // "다시 말씁해 주시겠어요?"
+    private String refinedText;
 
     // 다음 단계 정보
     private Integer nextStepOrder;
