@@ -9,5 +9,5 @@ WORKDIR /app
 ARG JAR_FILE=build/libs/*.jar
 COPY ${JAR_FILE} app.jar
 
-# 4. 실행 (prod 프로필 적용)
+# 4. 실행
 ENTRYPOINT ["java", "-Dspring.profiles.active=prod", "-jar", "app.jar"]
