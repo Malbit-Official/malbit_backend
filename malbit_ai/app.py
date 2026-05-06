@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException,Header, Request
 import os
 import shutil
 from pathlib import Path
@@ -12,6 +12,7 @@ load_dotenv()
 from processor.stt_engine import load_asr_pipeline, transcribe_audio
 from processor.llm_handler import refine_text_with_llm
 from processor.llm_handler import summarize_meeting_and_schedule
+from processor.calendar_sync import sync_schedules_to_backend
 
 # 설정값 로드
 from processor.infer_remaster_text import (
@@ -36,7 +37,7 @@ async def root():
     return {"message": "Malbit AI Server is Running"}
 
 # 단문 리마스터링 엔드포인트
-@app.post("/analyze")
+@app.post("/api/analyze")
 async def analyze_voice(file: UploadFile = File(...)):
     # 고유 파일 저장
     unique_id = uuid.uuid4().hex[:8]
@@ -89,8 +90,11 @@ async def analyze_voice(file: UploadFile = File(...)):
             print(f"임시 파일 삭제 완료: {temp_file}")
 
 # 회의록 STT 및 요약 엔드포인트
-@app.post("/analyze-meeting")
-async def analyze_meeting(file: UploadFile = File(...)):
+@app.post("/api/analyze-meeting")
+async def analyze_meeting(
+    file: UploadFile = File(...),
+    authorization: str = Header(None)
+    ):
     unique_id = uuid.uuid4().hex[:8]
     temp_file = Path(f"meeting_{unique_id}_{file.filename}")
 
@@ -115,12 +119,20 @@ async def analyze_meeting(file: UploadFile = File(...)):
         # 회의록 요약 
         print(f" [Meeting STT 완료] ID: {unique_id}, 길이: {len(raw_text)}")
 
+        # 캘린더 API로 전송
+        if analysis_result.get("schedules"):
+            # 헤더에 토큰이 있는지 확인
+            if not authorization:
+                print(" [Warning] 인증 토큰이 없어 캘린더 동기화를 건너뜁니다.")
+            else:
+                await sync_schedules_to_backend(analysis_result["schedules"], authorization)
+
         return {
             "status": "SUCCESS",
             "data": {
                 "meeting_id": unique_id,
                 "raw_text": raw_text,
-                "summary": analysis_result.get("summary_text"),
+                "summary": analysis_result.get("summary_text", ""), 
                 "checklists": analysis_result.get("checklists", []),
                 "schedules": analysis_result.get("schedules", [])
             }
