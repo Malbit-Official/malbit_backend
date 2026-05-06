@@ -51,8 +51,15 @@ public class UserService {
                 .cognitiveLevel(request.getCognitiveLevel())
                 .build();
 
-        return userRepository.save(user).getUserId();
-    }
+        User savedUser = userRepository.save(user);
+
+        UserStatistics stats = UserStatistics.builder()
+                .user(savedUser)
+                .build();
+
+        statisticsRepository.save(stats);
+
+        return savedUser.getUserId();    }
 
     /* 로그인 로직 */
     public UserLoginResponse login(String email, String password) {
@@ -308,5 +315,12 @@ public class UserService {
 
         // DB에서 유저 삭제
         userRepository.delete(user);
+    }
+    @Transactional
+    public void increaseRoleplay(String email) {
+        UserStatistics stats = statisticsRepository.findByUserEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("통계 없음"));
+
+        stats.updateStats(0, 0, 1, 0); // 상황극 +1
     }
 }

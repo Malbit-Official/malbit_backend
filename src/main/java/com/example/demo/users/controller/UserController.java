@@ -285,4 +285,13 @@ public class UserController {
             return ResponseEntity.internalServerError().body(ApiResponse.fail("회원탈퇴 처리 중 오류가 발생했습니다."));
         }
     }
+    // 상황극 증가 API
+    @PatchMapping("/statistics/roleplay")
+    public ResponseEntity<ApiResponse<Object>> increaseRoleplay(
+            @AuthenticationPrincipal String email) {
+
+        userService.increaseRoleplay(email);
+
+        return ResponseEntity.ok(ApiResponse.success("상황극 증가 완료"));
+    }
 }
