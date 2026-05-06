@@ -49,11 +49,22 @@ public class RemasteringService {
                 .map(aiRes -> {
                     long latency = System.currentTimeMillis() - startTime;
 
+                    // 데이터 유실 방지 및 기본값 설정
+                    String raw = aiRes.getRawText();
+                    String refined = aiRes.getRefinedText();
+
+                    if (raw == null || raw.isBlank()) {
+                        raw = "인식된 내용 없음";
+                    }
+                    if (refined == null || refined.isBlank()) {
+                        refined = raw;
+                    }
+
                     // ConversationService를 통해 DB에 저장
                     ConversationLog savedLog = conversationService.saveResult(
                             email,
-                            aiRes.getRawText(),
-                            aiRes.getRefinedText(),
+                            raw,
+                            refined,
                             latency
                     );
 

@@ -1,7 +1,5 @@
 package com.example.demo.log.controller;
 
-import com.example.demo.entity.LogDetail;
-import com.example.demo.entity.User;
 import com.example.demo.global.common.ApiResponse;
 import com.example.demo.log.dto.LogCreateRequest;
 import com.example.demo.log.dto.LogDetailResponseDto;
@@ -9,7 +7,6 @@ import com.example.demo.log.dto.LogResponseDto;
 import com.example.demo.log.dto.MemoRequest;
 import com.example.demo.log.service.LogService;
 import lombok.RequiredArgsConstructor;
-import org.apache.coyote.Response;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -46,7 +43,7 @@ public class LogController {
     }
 
     /* 업무 생성 및 요약 API */
-    @PostMapping
+    @PostMapping ("/summary")
     public ResponseEntity<ApiResponse<LogDetailResponseDto>> createLog(
             @AuthenticationPrincipal String email,
             @RequestBody LogCreateRequest request) {

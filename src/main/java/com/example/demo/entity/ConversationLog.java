@@ -1,6 +1,7 @@
 package com.example.demo.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import java.time.LocalDateTime;
 
@@ -46,4 +47,6 @@ public class ConversationLog {
         this.latencyMs = latencyMs;
         this.isArchived = (isArchived != null) ? isArchived : false;
     }
+
+
 }
