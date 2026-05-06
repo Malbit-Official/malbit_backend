@@ -1,4 +1,4 @@
-spring:
+﻿spring:
   main:
     allow-circular-references: true
 
@@ -7,6 +7,30 @@ spring:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+
+  mvc:
+    async:
+      request-timeout: 300000
+
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-time: 86400000
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    protocol: smtp
+    properties:
+      sender-name: ${MAIL_SENDER_NAME}
+      mail:
+        smtp:
+          auth: true
+          timeout: 5000
+          starttls:
+            enable: true
+            required: true
 
   jpa:
     hibernate:
@@ -50,28 +74,8 @@ spring:
 # AI 서버 설정 (LlmService에서 사용)
 ai:
   server:
-    url: ${AI_SERVER_URL}
+    url: http://localhost:8000
 
-# JWT 보안 설정
-jwt:
-  secret: ${JWT_SECRET}
-  expiration-time: 86400000
-
-# 메일 발송 설정
-mail:
-  host: smtp.gmail.com
-  port: 587
-  username: ${MAIL_USERNAME}
-  password: ${MAIL_PASSWORD}
-  properties:
-    sender-name: ${MAIL_SENDER_NAME}
-    mail:
-      smtp:
-        auth: true
-        timeout: 5000
-        starttls:
-          enable: true
-          required: true
 
 # 로깅 설정 (최상위 계층)
 logging:

@@ -2,7 +2,13 @@ package com.example.demo.remastering.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
 @Schema(description = "문장 리마스터링 응답")
 public class RemasteringLogResponse {
 
@@ -21,46 +27,4 @@ public class RemasteringLogResponse {
     @Schema(description = "응답 지연 시간(ms)", example = "850")
     @JsonProperty("latency_ms")
     private Integer latencyMs;
-
-    public RemasteringLogResponse() {
-    }
-
-    public RemasteringLogResponse(Long logId, String originalSpeech, String refinedText, Integer latencyMs) {
-        this.logId = logId;
-        this.originalSpeech = originalSpeech;
-        this.refinedText = refinedText;
-        this.latencyMs = latencyMs;
-    }
-
-    public Long getLogId() {
-        return logId;
-    }
-
-    public void setLogId(Long logId) {
-        this.logId = logId;
-    }
-
-    public String getOriginalSpeech() {
-        return originalSpeech;
-    }
-
-    public void setOriginalSpeech(String originalSpeech) {
-        this.originalSpeech = originalSpeech;
-    }
-
-    public String getRefinedText() {
-        return refinedText;
-    }
-
-    public void setRefinedText(String refinedText) {
-        this.refinedText = refinedText;
-    }
-
-    public Integer getLatencyMs() {
-        return latencyMs;
-    }
-
-    public void setLatencyMs(Integer latencyMs) {
-        this.latencyMs = latencyMs;
-    }
 }
