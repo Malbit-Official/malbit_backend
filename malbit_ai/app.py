@@ -4,10 +4,14 @@ import shutil
 from pathlib import Path
 import uvicorn
 import uuid
+from datetime import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from processor.stt_engine import load_asr_pipeline, transcribe_audio
 from processor.llm_handler import refine_text_with_llm
-# from processor.llm_handler import summarize_meeting_and_extract_schedule
+from processor.llm_handler import summarize_meeting_and_schedule
 
 # 설정값 로드
 from processor.infer_remaster_text import (
@@ -85,7 +89,7 @@ async def analyze_voice(file: UploadFile = File(...)):
             print(f"임시 파일 삭제 완료: {temp_file}")
 
 # 회의록 STT 및 요약 엔드포인트
-@app.post("analze-meeting")
+@app.post("/analyze-meeting")
 async def analyze_meeting(file: UploadFile = File(...)):
     unique_id = uuid.uuid4().hex[:8]
     temp_file = Path(f"meeting_{unique_id}_{file.filename}")
@@ -95,17 +99,31 @@ async def analyze_meeting(file: UploadFile = File(...)):
         with temp_file.open("wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # 긴 음성 전용 STT 수행
+        # STT 수행 (음성 -> 텍스트)
         raw_text = transcribe_audio(asr_pipe, str(temp_file))
+
+        # 현재 날짜 정보 생성
+        current_date_str = datetime.now().strftime("%Y-%m-%d (%A)")
+
+        # LMM 분석 수행
+        analysis_result = summarize_meeting_and_schedule(
+            raw_text=raw_text, 
+            current_date=current_date_str, 
+            llm_model=DEFAULT_LLM_MODEL
+        )
 
         # 회의록 요약 
         print(f" [Meeting STT 완료] ID: {unique_id}, 길이: {len(raw_text)}")
 
         return {
             "status": "SUCCESS",
-            "meeting_id": unique_id,
-            "raw_text": raw_text,
-            "message": "회의 음성 텍스트 변환 완료. 요약 단계를 진행하세요."
+            "data": {
+                "meeting_id": unique_id,
+                "raw_text": raw_text,
+                "summary": analysis_result.get("summary_text"),
+                "checklists": analysis_result.get("checklists", []),
+                "schedules": analysis_result.get("schedules", [])
+            }
         }
 
     except Exception as e:
@@ -115,7 +133,7 @@ async def analyze_meeting(file: UploadFile = File(...)):
     finally:
         if temp_file.exists():
             temp_file.unlink()
-            print(f" 회의용 임시 대용량 파일 삭제 완료: {temp_file}")
+            print(f" 임시 파일 삭제 완료: {temp_file}")
 
 if __name__ == "__main__": 
     uvicorn.run(app, host="0.0.0.0", port=8000)
