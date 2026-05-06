@@ -19,9 +19,16 @@ public class UserStatistics {
     @JoinColumn(name = "user_id")
     private User user;
 
+    @Builder.Default
     private Integer totalCorrectionCount = 0;      // 총 보정 횟수
+
+    @Builder.Default
     private Integer averageCorrectionIntensity = 0; // 평균 보정 강도
+
+    @Builder.Default
     private Integer completedRoleplays = 0;         // 완료한 상황극
+
+    @Builder.Default
     private Integer generatedSummaries = 0;         // 생성한 요약
 
     // 통계 업데이트 메서드

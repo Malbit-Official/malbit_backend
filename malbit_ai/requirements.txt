@@ -1,17 +1,18 @@
+# Core AI & Audio
 torch
 transformers
-openai
-python-dotenv
-librosa
-numpy
-soundfile
+accelerate
 sentencepiece
+librosa==0.10.1
+numpy
+soundfile==0.12.1
+pooch==1.8.1
 
+# API Server
 fastapi
 uvicorn
 python-multipart
-accelerate
 
-librosa==0.10.1
-soundfile==0.12.1
-pooch==1.8.1
+# AWS & Environment
+boto3>=1.34.0
+python-dotenv

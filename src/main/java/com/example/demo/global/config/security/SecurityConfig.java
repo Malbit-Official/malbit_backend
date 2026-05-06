@@ -64,6 +64,8 @@ public class SecurityConfig {
                 )
 
                 .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ASYNC).permitAll()
+
                         .requestMatchers("/api/users/join", "/api/users/login", "/api/users/password/reset").permitAll()
                         .requestMatchers("/api/auth/email/**", "/oauth2/**", "/uploads/**", "/login", "/error").permitAll()
                         .requestMatchers("/api/logs").permitAll()
@@ -72,6 +74,9 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         // WebConfig에서 설정한 업로드 파일 경로 허용
                         .requestMatchers("/uploads/**").permitAll()
+
+                        .requestMatchers("/api/remaster/**").authenticated()
+
                         // 로그인/회원가입 등 공통 API 허용 (필요시 추가)
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/**").authenticated()

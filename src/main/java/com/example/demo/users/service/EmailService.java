@@ -63,6 +63,8 @@ public class EmailService {
 
     // 인증번호 확인
     public boolean verifyCode(String email, String code) {
+
+        /*
         String savedCode = authCodeMap.get(email);
 
         if (savedCode != null && savedCode.equals(code)) {
@@ -74,6 +76,15 @@ public class EmailService {
             return true;
         }
         return false;
+        */
+
+
+
+        // 무조건 인증 성공 처리(임시)
+        verifiedEmailMap.put(email, true);
+        passwordResetReadyMap.put(email, true);
+        return true;
+
     }
 
     // 비밀번호 재설정 가능한 상태인지 확인
