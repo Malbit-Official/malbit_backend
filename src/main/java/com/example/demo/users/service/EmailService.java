@@ -30,7 +30,7 @@ public class EmailService {
     private final Map<String, Boolean> verifiedEmailMap = new HashMap<>();
 
     // 비밀번호 재설정 완료 여부를 저장
-    private final Map<String,Boolean> passwordResetReadyMap = new HashMap<>();
+    private final Map<String, Boolean> passwordResetReadyMap = new HashMap<>();
 
     // 6자리 랜덤 인증번호 설정
     private String createCode() {
@@ -38,12 +38,12 @@ public class EmailService {
     }
 
     // 메일 발송
-    public void sendEmail (String toEmail) {
+    public void sendEmail(String toEmail) {
         String authCode = createCode();
 
         MimeMessage message = mailSender.createMimeMessage();
 
-        try{
+        try {
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             helper.setTo(toEmail);
@@ -63,7 +63,6 @@ public class EmailService {
 
     // 인증번호 확인
     public boolean verifyCode(String email, String code) {
-
 
         String savedCode = authCodeMap.get(email);
 
