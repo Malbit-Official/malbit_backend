@@ -41,7 +41,7 @@ public class RemasteringService {
 
         // AI 서버 호출 및 응답 처리
         return webClient.post()
-                .uri("/analyze") // FastAPI의 엔드포인트
+                .uri("/api/analyze") // FastAPI의 엔드포인트
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .body(BodyInserters.fromMultipartData(bodyBuilder.build()))
                 .retrieve()
