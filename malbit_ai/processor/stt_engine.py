@@ -50,12 +50,14 @@ def transcribe_audio(asr_pipe, audio_path: str) -> str:
     
     result = asr_pipe(
         audio,
+        chunk_length_s=30,   
+        stride_length_s=5,     
         batch_size=8,
+        return_timestamps=True, 
         generate_kwargs={
-            "repetition_penalty": 1.1,
-            "no_repeat_ngram_size": 3,
             "language": "ko",
-            "task": "transcribe"
+            "task": "transcribe",
+            "repetition_penalty": 1.1, 
         }
     )
     return result["text"]
