@@ -49,6 +49,7 @@ dependencies {
 
     // Swagger (API 문서화 - 중복 제거 및 버전 최신화)
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
+    implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:2.5.0'
 
     // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
