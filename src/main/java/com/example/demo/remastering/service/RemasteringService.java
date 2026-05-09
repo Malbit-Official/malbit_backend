@@ -3,6 +3,8 @@ package com.example.demo.remastering.service;
 import com.example.demo.conversation.service.ConversationService;
 import com.example.demo.entity.ConversationLog;
 import com.example.demo.remastering.dto.AiServerResponseDto;
+import com.example.demo.remastering.dto.MeetingAiServerResponseDto;
+import com.example.demo.remastering.dto.MeetingAnalysisResponse;
 import com.example.demo.remastering.dto.RemasteringLogResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -73,6 +75,35 @@ public class RemasteringService {
                             savedLog.getLogId(),
                             savedLog.getSttOrigin(),
                             savedLog.getRefinedText(),
+                            (int) latency
+                    );
+                });
+    }
+
+    public Mono<MeetingAnalysisResponse> analyzeMeeting(String email, MultipartFile audioFile) {
+        long startTime = System.currentTimeMillis();
+
+        // AI 서버(FastAPI)로 보낼 멀티파트 데이터 구성
+        MultipartBodyBuilder bodyBuilder = new MultipartBodyBuilder();
+        bodyBuilder.part("file", audioFile.getResource());
+
+        // AI 서버 호출 및 응답 처리
+        return webClient.post()
+                .uri("/api/analyze-meeting")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(BodyInserters.fromMultipartData(bodyBuilder.build()))
+                .retrieve()
+                .bodyToMono(MeetingAiServerResponseDto.class)
+                .map(aiRes -> {
+                    long latency = System.currentTimeMillis() - startTime;
+                    MeetingAiServerResponseDto.MeetingData data = aiRes.getData();
+
+                    return new MeetingAnalysisResponse(
+                            data.getMeeting_id(),
+                            data.getRaw_text(),
+                            data.getSummary(),
+                            data.getChecklists(),
+                            data.getSchedules(),
                             (int) latency
                     );
                 });
