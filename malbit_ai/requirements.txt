@@ -16,3 +16,5 @@ python-multipart
 # AWS & Environment
 boto3>=1.34.0
 python-dotenv
+
+httpx
