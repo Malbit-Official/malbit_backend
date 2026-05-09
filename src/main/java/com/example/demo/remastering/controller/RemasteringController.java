@@ -1,5 +1,6 @@
 package com.example.demo.remastering.controller;
 
+import com.example.demo.remastering.dto.MeetingAnalysisResponse;
 import com.example.demo.remastering.dto.RemasteringLogResponse;
 import com.example.demo.remastering.service.RemasteringService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -54,5 +55,23 @@ public class RemasteringController {
     ) {
         return remasteringService.remaster(email, audioFile, preferredTone)
                 .map(result -> ResponseEntity.ok(ApiResponse.success("리마스터링 성공", result)));
+    }
+
+    @Operation(
+            summary = "회의록 분석 및 일정 추출",
+            description = "회의 음성 파일을 분석하여 요약, 체크리스트, 일정을 반환하고 DB에 저장합니다.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+
+    @PostMapping(value = "/analyze-meeting", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Mono<ResponseEntity<ApiResponse<MeetingAnalysisResponse>>> analyzeMeeting(
+            @AuthenticationPrincipal String email,
+
+            @Parameter(description = "업로드할 회의 음성 파일")
+            @RequestPart("audio_file") MultipartFile audioFile
+    ) {
+
+        return remasteringService.analyzeMeeting(email, audioFile)
+                .map(result -> ResponseEntity.ok(ApiResponse.success("회의 분석 성공", result)));
     }
 }
