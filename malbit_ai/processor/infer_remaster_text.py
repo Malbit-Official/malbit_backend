@@ -20,7 +20,7 @@ def run_remastering(audio_path: str) -> dict:
     raw_text = transcribe_audio(asr_pipe, audio_path)
     
     # LLM 정제 수행
-    refined_text = refine_text_with_llm(raw_text, LLM_MODEL)
+    refined_text = refine_text_with_llm(raw_text, DEFAULT_LLM_MODEL)
     
     return {
         "raw": raw_text,
