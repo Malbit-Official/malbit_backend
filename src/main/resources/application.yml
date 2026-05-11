@@ -62,7 +62,7 @@ spring:
             client-secret: ${KAKAO_CLIENT_SECRET}
             client-authentication-method: client_secret_post
             authorization-grant-type: authorization_code
-            redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8080/login/oauth2/code/kakao}
+            redirect-uri: ${KAKAO_REDIRECT_URI:http://3.37.239.105/login/oauth2/code/kakao}
             client-name: Kakao
         provider:
           kakao:
@@ -74,7 +74,7 @@ spring:
 # AI 서버 설정 (LlmService에서 사용)
 ai:
   server:
-    url: http://localhost:8000
+    url: http://malbit-ai:5000
 
 
 # 로깅 설정 (최상위 계층)
