@@ -148,4 +148,4 @@ async def analyze_meeting(
             print(f" 임시 파일 삭제 완료: {temp_file}")
 
 if __name__ == "__main__": 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=5000)
