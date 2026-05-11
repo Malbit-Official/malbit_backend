@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # 서버 주소 
-BACKEND_URL = os.getenv("BACKEND_URL", "http://13.125.107.37:8080")
+BACKEND_URL = os.getenv("BACKEND_URL", "http://3.37.239.105:8080")
 CREATE_TASK_URL = f"{BACKEND_URL}/api/calendar/manual"
 
 async def sync_schedules_to_backend(schedules: list, auth_header: str):
