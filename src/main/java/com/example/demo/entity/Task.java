@@ -35,8 +35,8 @@ public class Task {
 
     private LocalDateTime endAt; // 업무 마감일
 
-    @Column(nullable = false)
-    private boolean isCompleted = false; // 완료여부
+    @Column(name = "is_completed", nullable = false)
+    private boolean completed = false; // 완료여부
 
     private String category; // 업무 카테고리
 
@@ -49,7 +49,7 @@ public class Task {
         this.content = content;
         this.startAt = startAt;
         this.endAt = endAt;
-        this.isCompleted = (isCompleted != null) ? isCompleted : false;
+        this.completed = (isCompleted != null) ? isCompleted : false;
         this.category = category;
     }
 
@@ -62,7 +62,7 @@ public class Task {
     }
 
     public void toggleCompletion() {
-        this.isCompleted = !this.isCompleted;
+        this.completed = !this.completed;
     }
 
 }
