@@ -91,6 +91,7 @@ public class UserService {
                 .email(user.getEmail())
                 .name(user.getName())
                 .jobType(user.getJobType())
+                .profileImage(user.getProfileImUrl())
                 .build();
     }
 
