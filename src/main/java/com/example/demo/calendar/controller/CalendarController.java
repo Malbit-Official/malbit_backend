@@ -73,4 +73,15 @@ public class CalendarController {
         return ResponseEntity.ok(ApiResponse.success("임박 일정 조회 성공", response));
     }
 
+    /* 체크박스 상태 변경 API */
+    @PatchMapping("/{taskId}/toggle")
+    public ResponseEntity<ApiResponse<Boolean>> toggleTask(@PathVariable Long taskId) {
+        boolean updatedStatus = calendarService.toggleTaskCompletion(taskId);
+
+        return ResponseEntity.ok(ApiResponse.success(
+                "일정 상태가 " + (updatedStatus ? "완료" : "미완료") + "로 변경되었습니다.",
+                updatedStatus
+        ));
+    }
+
 }
