@@ -135,7 +135,7 @@ public class UserController {
         try {
             String imagePath = fileService.saveFile(file, "profiles");
 
-            String imageUrl = "http://10.0.2.2:8080" + imagePath;
+            String imageUrl = "3.37.239.105" + imagePath;
 
             userService.updateProfileImage(email, imageUrl);
             return ResponseEntity.ok(ApiResponse.success("프로필 이미지가 업로드되었습니다.", Map.of("imageUrl", imageUrl)));
