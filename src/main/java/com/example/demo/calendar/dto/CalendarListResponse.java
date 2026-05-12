@@ -35,5 +35,7 @@ public class CalendarListResponse {
         private LocalDateTime end_at;
 
         private String category;
+
+        private boolean is_completed;
     }
 }

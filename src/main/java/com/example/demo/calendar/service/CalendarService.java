@@ -77,6 +77,7 @@ public class CalendarService {
                                         .start_at(t.getStartAt())
                                         .end_at(t.getEndAt())
                                         .category(t.getCategory())
+                                        .is_completed(t.isCompleted())
                                         .build())
                                 .collect(Collectors.toList()))
                         .build())
@@ -144,6 +145,16 @@ public class CalendarService {
         return UpcomingTasksResponse.builder()
                 .upcoming_tasks(taskDtos)
                 .build();
+    }
+
+    /* 일정 완료 여부 토글 로직 */
+    @Transactional
+    public boolean toggleTaskCompletion(Long taskId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 일정입니다. [ID: " + taskId + "]"));
+
+        task.toggleCompletion();
+        return task.isCompleted();
     }
 
     // 남은 시간을 "0시간 0분" 형태로 포맷팅하는 헬퍼 메서드
