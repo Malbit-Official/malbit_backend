@@ -36,7 +36,7 @@ public class Task {
     private LocalDateTime endAt; // 업무 마감일
 
     @Column(nullable = false)
-    private Boolean isCompleted = false; // 완료여부
+    private boolean isCompleted = false; // 완료여부
 
     private String category; // 업무 카테고리
 
@@ -59,6 +59,10 @@ public class Task {
         if (category != null) this.category = category;
         if (startAt != null) this.startAt = startAt;
         if (endAt != null) this.endAt = endAt;
+    }
+
+    public void toggleCompletion() {
+        this.isCompleted = !this.isCompleted;
     }
 
 }
