@@ -275,19 +275,30 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserStatisticsResponse getStatistics(String email) {
         UserStatistics stats = statisticsRepository.findByUserEmail(email)
-                .orElseGet(() -> UserStatistics.builder()
-                        .totalCorrectionCount(0)
-                        .averageCorrectionIntensity(0)
-                        .completedRoleplays(0)
-                        .generatedSummaries(0)
-                        .build());
+                .orElseGet(() -> {
+                    User user = userRepository.findByEmail(email)
+                                    .orElseThrow(() -> new IllegalArgumentException("해당 유저가 없습니다."));
 
-        return UserStatisticsResponse.builder()
-                .totalCorrectionCount(stats.getTotalCorrectionCount())
-                .averageCorrectionIntensity(stats.getAverageCorrectionIntensity())
-                .completedRoleplays(stats.getCompletedRoleplays())
-                .generatedSummaries(stats.getGeneratedSummaries())
-                .build();
+
+                    return statisticsRepository.save(UserStatistics.builder()
+                            .user(user)
+                            .totalCorrectionCount(0)
+                            .averageCorrectionIntensity(0)
+                            .completedRoleplays(0)
+                            .generatedSummaries(0)
+                            .build());
+                });
+
+        return UserStatisticsResponse.from(stats);
+    }
+
+    /* 상황극 증가 로직 */
+    @Transactional
+    public void increaseRoleplay(String email) {
+        UserStatistics stats = statisticsRepository.findByUserEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("통계 없음"));
+
+        stats.incrementRoleplay(); // 상황극 +1
     }
 
     /* 로그아웃 로직 */
@@ -316,11 +327,5 @@ public class UserService {
         // DB에서 유저 삭제
         userRepository.delete(user);
     }
-    @Transactional
-    public void increaseRoleplay(String email) {
-        UserStatistics stats = statisticsRepository.findByUserEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("통계 없음"));
 
-        stats.updateStats(0, 0, 1, 0); // 상황극 +1
-    }
 }

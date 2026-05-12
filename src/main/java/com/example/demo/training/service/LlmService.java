@@ -23,26 +23,30 @@ public class LlmService {
     public String[] refineSentence(String rawInput) {
 
         try {
-            Map<String, Object> response = webClient.post()
-                    .uri("/analyze")
+            Map<String, Object> fullResponse = webClient.post()
+                    .uri("/api/analyze")
                     .bodyValue(Map.of("text", rawInput))
                     .retrieve()
                     .bodyToMono(Map.class)
                     .block();
 
-            log.info("[LLM Raw Response] AI 서버 응답 전체: {}", response);
+            log.info("[LLM Raw Response] AI 서버 응답 전체: {}", fullResponse);
 
-            if (response != null && "success".equals(response.get("status"))) {
-                String refined = (String) response.get("refined_text");
-                String raw = (String) response.get("raw_text");
+            if (fullResponse != null && "SUCCESS".equals(fullResponse.get("status"))) {
+                Map<String, Object> data = (Map<String, Object>) fullResponse.get("data");
 
-                if (refined == null || refined.isBlank()) refined = rawInput;
-                if (raw == null || raw.isBlank()) raw = rawInput;
+                if (data != null) {
+                    String refined = (String) data.get("refined_text");
+                    String raw = (String) data.get("raw_text");
 
-                return new String[]{refined, raw};
+                    if (refined == null || refined.isBlank()) refined = rawInput;
+                    if (raw == null || raw.isBlank()) raw = rawInput;
+
+                    return new String[]{refined, raw};
+                }
             }
-
-        } catch (Exception e) {
+        }
+            catch (Exception e) {
             log.error("[LLM Error] 문장 정제 중 오류 발생: {}", e.getMessage());
         }
         return new String[]{rawInput, rawInput};
