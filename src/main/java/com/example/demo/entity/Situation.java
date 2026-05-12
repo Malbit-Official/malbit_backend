@@ -11,26 +11,32 @@ public class Situation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long situationId; // 상황ID (PK)
+    @Column(name = "situation_id")
+    private Long id;
 
     @Column(nullable = false)
-    private String situationName; // 상황명
+    private String situationName; // 프론트 버튼용 명칭 (예: "상품 안내 중")
 
-    private String locationTag; //위치태그
+    private String locationTag; // 위치 정보 (예: "매장", "카페")
 
-    private String iconUrl; //아이콘이미지
+    private String iconUrl;
+
+    private String bgColor;
 
     @Column(nullable = false)
-    private String keyword; // 핵심 키워드
+    private String keyword; // 해시태그용 키워드 (예: "재고, 안내")
 
-    private String bgColor; // 상황별 테마 색상
+    @Column(columnDefinition = "TEXT")
+    private String baseContext;  // AI에게 전달할 핵심 상황 설명 (프롬프트 베이스)
 
     @Builder
-    public Situation(String situationName, String locationTag, String iconUrl, String keyword, String bgColor) {
+    public Situation(String situationName, String locationTag, String iconUrl,
+                     String keyword, String bgColor, String baseContext) {
         this.situationName = situationName;
         this.locationTag = locationTag;
         this.iconUrl = iconUrl;
         this.keyword = keyword;
         this.bgColor = bgColor;
+        this.baseContext = baseContext;
     }
 }
