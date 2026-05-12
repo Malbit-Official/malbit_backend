@@ -271,14 +271,12 @@ public class UserService {
         user.updateDisplaySettings(request.getFontSize(), request.getIsLargeButton());
     }
 
-    /* 통계 데이터 조회 로직 */
-    @Transactional(readOnly = true)
-    public UserStatisticsResponse getStatistics(String email) {
-        UserStatistics stats = statisticsRepository.findByUserEmail(email)
+    /* [공통 메서드] 통계 데이터가 없으면 자동 생성 */
+    private UserStatistics getOrCreateStatistics(String email) {
+        return statisticsRepository.findByUserEmail(email)
                 .orElseGet(() -> {
                     User user = userRepository.findByEmail(email)
-                                    .orElseThrow(() -> new IllegalArgumentException("해당 유저가 없습니다."));
-
+                            .orElseThrow(() -> new IllegalArgumentException("해당 유저가 없습니다."));
 
                     return statisticsRepository.save(UserStatistics.builder()
                             .user(user)
@@ -288,18 +286,42 @@ public class UserService {
                             .generatedSummaries(0)
                             .build());
                 });
+    }
 
+    /* 통계 데이터 조회 로직 */
+    @Transactional(readOnly = true)
+    public UserStatisticsResponse getStatistics(String email) {
+
+        // 중복 로직 제거하고 공통 메서드 호출
+        UserStatistics stats = getOrCreateStatistics(email);
         return UserStatisticsResponse.from(stats);
     }
 
     /* 상황극 증가 로직 */
     @Transactional
     public void increaseRoleplay(String email) {
-        UserStatistics stats = statisticsRepository.findByUserEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("통계 없음"));
 
-        stats.incrementRoleplay(); // 상황극 +1
+        UserStatistics stats = getOrCreateStatistics(email);
+        stats.incrementRoleplay();
     }
+
+    /* 문장 보정 성공 시 (자동) */
+    @Transactional
+    public void addCorrection(String email, int intensity) {
+
+        // 중복 로직 제거하고 공통 메서드 호출
+        UserStatistics stats = getOrCreateStatistics(email);
+        stats.addCorrection(intensity);
+    }
+
+    /* 회의록 요약 완료 시 (자동) */
+    @Transactional
+    public void increaseSummary(String email) {
+
+        UserStatistics stats = getOrCreateStatistics(email);
+        stats.incrementSummary();
+    }
+
 
     /* 로그아웃 로직 */
     public void logout(String email) {

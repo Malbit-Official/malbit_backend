@@ -1,5 +1,6 @@
 package com.example.demo.training.service;
 
+import com.example.demo.users.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,13 +15,14 @@ import java.util.Map;
 public class LlmService {
     private final RestTemplate restTemplate = new RestTemplate();
     private final WebClient webClient;
+    private final UserService userService;
 
     @Value("${ai.server.url}")
     private String aiServerUrl;
 
     /* 문장 정제 요청 로직 */
     // 파이썬 AI 서버 혹은 AWS Bedrock(Claude 3)과 통신하여 사용자의 발화를 정제된 문장으로 변합니다.
-    public String[] refineSentence(String rawInput) {
+    public String[] refineSentence(String email, String rawInput) {
 
         try {
             Map<String, Object> fullResponse = webClient.post()
@@ -39,8 +41,12 @@ public class LlmService {
                     String refined = (String) data.get("refined_text");
                     String raw = (String) data.get("raw_text");
 
+                    // 값이 비어있을 경우 예외 처리
                     if (refined == null || refined.isBlank()) refined = rawInput;
                     if (raw == null || raw.isBlank()) raw = rawInput;
+
+                    // 통계 자동 업데이트
+                    userService.addCorrection(email, 50);
 
                     return new String[]{refined, raw};
                 }
@@ -49,6 +55,7 @@ public class LlmService {
             catch (Exception e) {
             log.error("[LLM Error] 문장 정제 중 오류 발생: {}", e.getMessage());
         }
+
         return new String[]{rawInput, rawInput};
     }
 }
