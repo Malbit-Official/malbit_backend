@@ -245,12 +245,20 @@ public class UserController {
     /* 통계 데이터 조회 API */
     @GetMapping("/statistics")
     public ResponseEntity<ApiResponse<UserStatisticsResponse>> getStatistics(@AuthenticationPrincipal String email) {
-        try {
+
             UserStatisticsResponse data = userService.getStatistics(email);
             return ResponseEntity.ok(ApiResponse.success("통계 데이터를 성공적으로 조회했습니다.", data));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(ApiResponse.fail("통계 조회 중 오류가 발생했습니다."));
-        }
+
+    }
+
+    /* 상황극 증가 API */
+    @PatchMapping("/statistics/roleplay")
+    public ResponseEntity<ApiResponse<Object>> increaseRoleplay(
+            @AuthenticationPrincipal String email) {
+
+        userService.increaseRoleplay(email);
+
+        return ResponseEntity.ok(ApiResponse.success("상황극 횟수가 증가되었습니다."));
     }
 
     /* 로그아웃 API */
@@ -285,13 +293,5 @@ public class UserController {
             return ResponseEntity.internalServerError().body(ApiResponse.fail("회원탈퇴 처리 중 오류가 발생했습니다."));
         }
     }
-    // 상황극 증가 API
-    @PatchMapping("/statistics/roleplay")
-    public ResponseEntity<ApiResponse<Object>> increaseRoleplay(
-            @AuthenticationPrincipal String email) {
 
-        userService.increaseRoleplay(email);
-
-        return ResponseEntity.ok(ApiResponse.success("상황극 증가 완료"));
-    }
 }

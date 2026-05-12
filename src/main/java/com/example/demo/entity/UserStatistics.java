@@ -38,4 +38,21 @@ public class UserStatistics {
         this.completedRoleplays += roleplay;
         this.generatedSummaries += summary;
     }
+
+    // 상황극 완료 시 호출
+    public void incrementRoleplay() {
+        this.completedRoleplays += 1;
+    }
+
+    // 요약 생성 시 호출
+    public void incrementSummary() {
+        this.generatedSummaries += 1;
+    }
+
+    // 보정 발생 시 호출
+    public void addCorrection(int intensity) {
+        this.totalCorrectionCount += 1;
+
+        this.averageCorrectionIntensity = (this.averageCorrectionIntensity + intensity) / 2;
+    }
 }
