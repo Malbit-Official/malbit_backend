@@ -7,6 +7,7 @@ import com.example.demo.training.repository.StepResultRepository;
 import com.example.demo.training.repository.TrainingCategoryRepository;
 import com.example.demo.training.repository.TrainingSessionRepository;
 import com.example.demo.users.repository.UserRepository;
+import com.example.demo.users.repository.UserStatisticsRepository;
 import com.example.demo.users.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +47,8 @@ public class TrainingService {
 
     private final LlmService llmService;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+
+    private final UserStatisticsRepository statisticsRepository;
 
     private final String uploadPath = System.getProperty("user.dir") + "/uploads/";
     private final WebClient aiWebClient;
@@ -136,6 +139,12 @@ public class TrainingService {
 
         // 세션 상태 업데이트 (종료 처리)
         session.completeSession();
+
+        // 상황극 완료 통계 업데이트
+        UserStatistics stats = statisticsRepository.findByUserEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("통계 없음"));
+        stats.incrementRoleplay();
+        statisticsRepository.save(stats);
 
         // 통계 자동 업데이트
         userService.increaseRoleplay(email);
@@ -264,6 +273,12 @@ public class TrainingService {
                     .build();
 
             stepResultRepository.save(result);
+
+            // 통계 업데이트
+            UserStatistics stats = statisticsRepository.findByUserEmail(email)
+                    .orElseThrow(() -> new IllegalArgumentException("통계 없음"));
+            stats.addCorrection(score); // 보정 횟수 +1, 강도 누적
+            statisticsRepository.save(stats);
 
             // 다음 단계 조회 및 세션 업데이트
             int nextOrder = session.getCurrentStep().getStepOrder() + 1;
