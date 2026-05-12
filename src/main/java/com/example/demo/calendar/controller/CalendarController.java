@@ -6,6 +6,7 @@ import com.example.demo.calendar.dto.TaskUpdateRequest;
 import com.example.demo.calendar.dto.UpcomingTasksResponse;
 import com.example.demo.calendar.service.CalendarService;
 import com.example.demo.global.common.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
+@Tag(name = "Remaster", description = "리마스터 관련 API")
 @RequestMapping("/api/calendar")
 @RequiredArgsConstructor
 public class CalendarController {
