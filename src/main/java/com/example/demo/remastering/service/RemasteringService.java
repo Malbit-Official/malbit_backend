@@ -6,6 +6,7 @@ import com.example.demo.remastering.dto.AiServerResponseDto;
 import com.example.demo.remastering.dto.MeetingAiServerResponseDto;
 import com.example.demo.remastering.dto.MeetingAnalysisResponse;
 import com.example.demo.remastering.dto.RemasteringLogResponse;
+import com.example.demo.users.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
@@ -15,6 +16,7 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -24,6 +26,7 @@ public class RemasteringService {
 
     private final WebClient webClient; // AI 서버와 통신용
     private final ConversationService conversationService; // DB 저장용
+    private final UserService userService; // 통계 업데이용
 
     public Mono<RemasteringLogResponse> remaster(
             String email, // 세션 ID 대신 유저 이메일로 처리
@@ -40,6 +43,7 @@ public class RemasteringService {
         if (preferredTone != null && !preferredTone.isBlank()) {
             bodyBuilder.part("preferred_tone", preferredTone);
         }
+
 
         // AI 서버 호출 및 응답 처리
         return webClient.post()
@@ -62,6 +66,9 @@ public class RemasteringService {
                         refined = raw;
                     }
 
+                    // 통계 자동 업데이트 추가 - 문장 보정 횟수 및 강도 증가
+                    userService.addCorrection(email, 50);
+
                     // ConversationService를 통해 DB에 저장
                     ConversationLog savedLog = conversationService.saveResult(
                             email,
@@ -78,7 +85,9 @@ public class RemasteringService {
                             (int) latency
                     );
                 });
+
     }
+
 
     public Mono<MeetingAnalysisResponse> analyzeMeeting(String email, MultipartFile audioFile) {
         long startTime = System.currentTimeMillis();
@@ -98,6 +107,9 @@ public class RemasteringService {
                     long latency = System.currentTimeMillis() - startTime;
                     MeetingAiServerResponseDto.MeetingData data = aiRes.getData();
 
+                    // 통계 자동 업데이트 추가 - 회의 요약 횟수 증가
+                    userService.increaseSummary(email);
+
                     return new MeetingAnalysisResponse(
                             data.getMeeting_id(),
                             data.getRaw_text(),
@@ -108,6 +120,8 @@ public class RemasteringService {
                     );
                 });
     }
+
+
 }
 
 
