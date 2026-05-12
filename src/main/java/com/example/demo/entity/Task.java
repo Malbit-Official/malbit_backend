@@ -7,6 +7,8 @@ import java.time.LocalDateTime;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Builder
 @Table(name = "task")
 public class Task {
 
@@ -40,7 +42,6 @@ public class Task {
 
     private String category; // 업무 카테고리
 
-    @Builder
     public Task(User user, ConversationLog log, ConversationSession session, String content,
                 LocalDateTime startAt, LocalDateTime endAt, Boolean isCompleted, String category) {
         this.user = user;
@@ -51,6 +52,7 @@ public class Task {
         this.endAt = endAt;
         this.completed = (isCompleted != null) ? isCompleted : false;
         this.category = category;
+
     }
 
     // 일정 수정을 위한 비즈니스 메서드
@@ -61,8 +63,14 @@ public class Task {
         if (endAt != null) this.endAt = endAt;
     }
 
+    // 체크박스 상태 반전 (토글)
     public void toggleCompletion() {
         this.completed = !this.completed;
+    }
+
+    // 체크박스 상태를 명시적으로 업데이트
+    public void updateCompletion(boolean completed) {
+        this.completed = completed;
     }
 
 }

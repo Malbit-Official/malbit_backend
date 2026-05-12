@@ -42,7 +42,7 @@ public class CalendarService {
                 .startAt(request.getStart_at())
                 .endAt(request.getEnd_at())
                 .category(request.getCategory())
-                .isCompleted(false)
+                .completed(false)
                 .build();
 
         // 저장 및 ID 반환
@@ -50,7 +50,7 @@ public class CalendarService {
     }
 
     /* 월간/주간 일정 조회 로직 */
-    @Transactional
+    @Transactional (readOnly = true)
     public List<CalendarListResponse> getSchedules(String email, String queryDate) {
 
         User user = userRepository.findByEmail(email)
@@ -77,7 +77,7 @@ public class CalendarService {
                                         .start_at(t.getStartAt())
                                         .end_at(t.getEndAt())
                                         .category(t.getCategory())
-                                        .is_completed(t.isCompleted())
+                                        .is_completed(t.isCompleted()) // DB의 현재 상태를 DTO에 담음
                                         .build())
                                 .collect(Collectors.toList()))
                         .build())

@@ -7,6 +7,7 @@ import com.example.demo.training.repository.StepResultRepository;
 import com.example.demo.training.repository.TrainingCategoryRepository;
 import com.example.demo.training.repository.TrainingSessionRepository;
 import com.example.demo.users.repository.UserRepository;
+import com.example.demo.users.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.FileSystemResource;
@@ -40,6 +41,8 @@ public class TrainingService {
     private final TrainingSessionRepository sessionRepository;
     private final StepResultRepository stepResultRepository;
     private final UserRepository userRepository;
+
+    private final UserService userService;
 
     private final LlmService llmService;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
@@ -133,6 +136,10 @@ public class TrainingService {
 
         // 세션 상태 업데이트 (종료 처리)
         session.completeSession();
+
+        // 통계 자동 업데이트
+        userService.increaseRoleplay(email);
+        log.info(">>>> [통계 업데이트 테스트] 유저 {}의 상황극 횟수 증가 완료!", email);
 
         // [실제 데이터 조회] 이 세션에서 진행한 모든 StepResult 가져오기
         List<StepResult> results = stepResultRepository.findAllBySession(session);

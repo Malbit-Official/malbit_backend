@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@Tag(name = "Remaster", description = "리마스터 관련 API")
+@Tag(name = "Calendar", description = "캘린더 및 일정 관리 API")
 @RequestMapping("/api/calendar")
 @RequiredArgsConstructor
 public class CalendarController {
@@ -75,9 +75,11 @@ public class CalendarController {
         return ResponseEntity.ok(ApiResponse.success("임박 일정 조회 성공", response));
     }
 
-    /* 체크박스 상태 변경 API */
-    @PatchMapping("/{taskId}/toggle")
-    public ResponseEntity<ApiResponse<Boolean>> toggleTask(@PathVariable Long taskId) {
+    /* 일정 완료 여부 토글 API (통일된 버전) */
+    @PatchMapping("/{taskId}/completion")
+    public ResponseEntity<ApiResponse<Boolean>> toggleTaskCompletion(@PathVariable Long taskId) {
+
+        // 서비스에서 toggle 로직 호출 (DB 업데이트)
         boolean updatedStatus = calendarService.toggleTaskCompletion(taskId);
 
         return ResponseEntity.ok(ApiResponse.success(
