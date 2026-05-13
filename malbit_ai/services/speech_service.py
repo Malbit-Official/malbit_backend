@@ -23,33 +23,26 @@ def suggest_speech_by_situation(category: str, user_input: str = None) -> dict:
     - 세부 상황: {situation_context}
 
     ### 지시 사항 (Instructions):
-    1. 위 상황에서 바로 사용할 수 있는 정중하고 명확한 한국어 문장 3개를 생성하세요.
+    1. 위 상황에서 바로 사용할 수 있는 정중하고 명확한 한국어 문장 5개를 생성하세요.
     2. 각 문장마다 어떤 상황에 쓰면 좋을지 20자 이내의 짧은 '사용 팁(tip)'을 덧붙이세요.
     3. 결과는 반드시 아래의 JSON 형식으로만 출력하세요. 다른 설명은 생략합니다.
 
     ### 응답 형식 (JSON Schema):
-    {{
-      "recommendations": [
         {{
-          "speech": "추천 문장 1",
-          "tip": "팁 내용"
-        }},
-        {{
-          "speech": "추천 문장 2",
-          "tip": "팁 내용"
-        }},
-        {{
-          "speech": "추천 문장 3",
-          "tip": "팁 내용"
+          "recommendations": [
+            {{ "speech": "문장1", "tip": "팁1" }},
+            {{ "speech": "문장2", "tip": "팁2" }},
+            {{ "speech": "문장3", "tip": "팁3" }},
+            {{ "speech": "문장4", "tip": "팁4" }},
+            {{ "speech": "문장5", "tip": "팁5" }}
+          ]
         }}
-      ]
-    }}
     """
 
     native_request = {
         "anthropic_version": "bedrock-2023-05-31",
-        "max_tokens": 1000,
-        "temperature": 0.3, # 약간의 창의성을 위해 0.3 설정
+        "max_tokens": 1500,
+        "temperature": 0.3, # 조금의 창의성을 위해 0.3 설정
         "messages": [{"role": "user", "content": [{"type": "text", "text": prompt}]}],
     }
 
@@ -73,5 +66,5 @@ def suggest_speech_by_situation(category: str, user_input: str = None) -> dict:
 
     except Exception as e:
         print(f" [Speech Service Error] {e}")
-        # 에러 발생 시 죽지 않도록 빈 리스트 반환
+        # 에러 발생 시 빈 리스트 반환
         return {"recommendations": []}

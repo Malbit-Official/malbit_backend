@@ -5,6 +5,7 @@ import com.example.demo.global.common.ApiResponse;
 import com.example.demo.training.dto.*;
 import com.example.demo.training.service.TrainingCategoryService;
 import com.example.demo.training.service.TrainingService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.apache.coyote.Response;
 import org.springframework.http.MediaType;
@@ -16,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.util.List;
 
+@Tag(name = "발음 연습", description = "구음장애 개선을 위한 사용자 맞춤형 발음 훈련 기능을 제공합니다.")
 @RestController
 @RequestMapping("/api/training")
 @RequiredArgsConstructor

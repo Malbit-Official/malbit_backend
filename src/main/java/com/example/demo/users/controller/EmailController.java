@@ -2,6 +2,7 @@ package com.example.demo.users.controller;
 
 import com.example.demo.global.common.ApiResponse;
 import com.example.demo.users.service.EmailService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
+@Tag(name = "이메일 인증", description = "계정 확인을 위한 이메일 발송을 처리합니다..")
 @RestController
 @RequestMapping("/api/auth/email")
 @RequiredArgsConstructor

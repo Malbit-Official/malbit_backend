@@ -12,14 +12,13 @@ import numpy as np
 
 def load_asr_pipeline():
     """Whisper 파이프라인 로드 (서버 시작 시 1회 호출)"""
-    # 9번째 줄: 아래 줄들의 시작 위치(들여쓰기)가 def 줄보다 한 칸(Space 4번) 안으로 들어와야 함
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
     # 모델 로드
     model = WhisperForConditionalGeneration.from_pretrained(
         Config.DEFAULT_MODEL_PATH,
-        subfolder=Config.SUB_FOLDER,
+        #subfolder=Config.SUB_FOLDER,
         torch_dtype=torch_dtype,
         low_cpu_mem_usage=True,
     )
@@ -28,7 +27,7 @@ def load_asr_pipeline():
 
     processor = AutoProcessor.from_pretrained(
         Config.DEFAULT_MODEL_PATH,
-        subfolder="model/whisper-dysarthria-ko"
+        #subfolder="model/whisper-dysarthria-ko"
     )
 
     return pipeline(

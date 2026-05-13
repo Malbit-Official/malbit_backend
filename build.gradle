@@ -24,39 +24,36 @@ repositories {
 }
 
 dependencies {
-    // Spring Boot Starters (기본 프레임워크)
+    // Core Frameworks (Spring MVC & WebFlux)
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-webflux' // AI 서버 비동기 통신(WebClient) 필수
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
-    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-mail'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
 
-    // AI 서버와 비동기 통신을 위해 사용 (WebClient용)
-    implementation 'org.springframework.boot:spring-boot-starter-webflux'
-
-    // Database & Utils
+    // Database & Auth (JWT)
     runtimeOnly 'com.mysql:mysql-connector-j'
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+    // Documentation (Swagger - 버전 통일 및 최적화)
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
+
+    // Utilities & Config
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     implementation 'io.github.cdimascio:dotenv-java:3.0.0'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
-    // JWT (인증)
-    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
-    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
-    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
-
-    // Swagger (API 문서화 - 중복 제거 및 버전 최신화)
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
-    implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:2.5.0'
-
     // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-
 }
+
 
 tasks.named('test') {
     useJUnitPlatform()

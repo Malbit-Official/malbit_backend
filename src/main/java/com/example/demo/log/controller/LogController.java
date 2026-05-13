@@ -6,6 +6,7 @@ import com.example.demo.log.dto.LogDetailResponseDto;
 import com.example.demo.log.dto.LogResponseDto;
 import com.example.demo.log.dto.MemoRequest;
 import com.example.demo.log.service.LogService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 
+@Tag(name = "리마스터링 기록", description = "과거 리마스터링 수행 이력 및 로그를 관리합니다.")
 @RestController
 @RequestMapping("/api/logs")
 @RequiredArgsConstructor
