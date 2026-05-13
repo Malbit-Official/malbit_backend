@@ -75,7 +75,7 @@ spring:
 ai:
   server:
     url: http://malbit-ai:5000
-
+    # url: http://localhost:5000
 
 # 로깅 설정 (최상위 계층)
 logging:

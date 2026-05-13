@@ -1,3 +1,4 @@
+# Whisper 파인튜닝 스크립트
 import os
 from dataclasses import dataclass
 from typing import Any, Dict, List, Union

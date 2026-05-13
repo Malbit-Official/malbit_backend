@@ -16,8 +16,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+@Tag(name = "캘린더 관리", description = "사용자 일정 조회 및 관리 기능을 제공합니다.")
 @RestController
-@Tag(name = "Calendar", description = "캘린더 및 일정 관리 API")
 @RequestMapping("/api/calendar")
 @RequiredArgsConstructor
 public class CalendarController {

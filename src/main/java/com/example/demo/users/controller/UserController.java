@@ -6,6 +6,7 @@ import com.example.demo.users.dto.*;
 import com.example.demo.users.service.EmailService;
 import com.example.demo.global.infrastructure.FileService;
 import com.example.demo.users.service.UserService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.apache.coyote.Response;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+@Tag(name = "회원 관리", description = "회원가입, 프로필 수정 등 사용자 정보를 관리합니다.")
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor

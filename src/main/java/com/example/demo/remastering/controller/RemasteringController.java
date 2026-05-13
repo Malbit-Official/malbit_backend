@@ -19,7 +19,7 @@ import reactor.core.publisher.Mono;
 
 import com.example.demo.global.common.ApiResponse;
 
-@Tag(name = "문장리마스터링", description = "음성 파일을 받아 문장 리마스터링 결과를 반환합니다.")
+@Tag(name = "문장 리마스터링", description = "음성 파일을 분석하여 정제된 문장으로 변환합니다.")
 @RestController
 @RequestMapping("/api/remaster")
 public class RemasteringController {
