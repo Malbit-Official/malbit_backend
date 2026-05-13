@@ -3,6 +3,7 @@ package com.example.demo.training.service;
 import com.example.demo.users.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -11,7 +12,6 @@ import java.util.Map;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class LlmService {
     private final RestTemplate restTemplate = new RestTemplate();
     private final WebClient webClient;
@@ -19,6 +19,11 @@ public class LlmService {
 
     @Value("${ai.server.url}")
     private String aiServerUrl;
+
+    public LlmService(@Qualifier("aiWebClient") WebClient webClient, UserService userService) {
+        this.webClient = webClient;
+        this.userService = userService;
+    }
 
     /* 문장 정제 요청 로직 */
     // 파이썬 AI 서버 혹은 AWS Bedrock(Claude 3)과 통신하여 사용자의 발화를 정제된 문장으로 변합니다.
