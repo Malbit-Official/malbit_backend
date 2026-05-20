@@ -34,7 +34,6 @@ async def root():
 # 단문 리마스터링 엔드포인트
 @app.post("/api/analyze")
 async def analyze_voice(file: UploadFile = File(...)):
-    print("/api/analyze 시작")
     unique_id = uuid.uuid4().hex[:8]
     temp_path = f"temp_{unique_id}_{file.filename}"
     print(f"unique_id = {unique_id}\n temp_path = {temp_path}")
@@ -42,13 +41,7 @@ async def analyze_voice(file: UploadFile = File(...)):
     try:
         with open(temp_path, "wb") as buffer:
             buffer.write(await file.read())
-        print("open buffer 완료")
-
-        # remaster_service 호출
-        print("run_remastering 시작")
         result = await run_in_threadpool(run_remastering, asr_pipe, temp_path)
-        print("run_remastering 완료")
-        print(f"data: log_id:{unique_id},{result}")
         return {
             "status": "SUCCESS",
             "data": { "log_id": unique_id, **result }
@@ -62,20 +55,16 @@ async def analyze_voice(file: UploadFile = File(...)):
 # 회의록 요약 및 캘린더 동기화 엔드포인트
 @app.post("/api/analyze-meeting")
 async def analyze_meeting(file: UploadFile = File(...), authorization: str = Header(None)):
-    print("/api/analyze-meeting 시작")
     unique_id = uuid.uuid4().hex[:8]
     temp_path = f"meeting_{unique_id}_{file.filename}"
-    print(f"unique_id = {unique_id}\ntemp_path = {temp_path}")
 
     try:
         with open(temp_path, "wb") as buffer:
             buffer.write(await file.read())
-        print("open folder")
 
         # meeting_service 로직 수행
         current_date = datetime.now().strftime("%Y-%m-%d (%A)")
         analysis_result = summarize_meeting_and_schedule(temp_path, current_date, asr_pipe)
-        print(f"current_date = {current_date}\nanalysis_result = {analysis_result}")
 
         if authorization and analysis_result.get("schedules"):
             await sync_schedules_to_backend(analysis_result["schedules"], authorization)
