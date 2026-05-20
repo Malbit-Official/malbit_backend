@@ -31,10 +31,14 @@ public class TrainingCategory {
     @Column(name = "tag_name")
     private List<String> tags; // 해시태그 목록 (예: ["#주문", "#확인"])
 
+    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ScenarioStep> steps;
+
     @Builder
-    public TrainingCategory(String title, String imageUrl, List<String> tags) {
+    public TrainingCategory(String title, String imageUrl, List<String> tags, List<ScenarioStep> steps) {
         this.title = title;
         this.imageUrl = imageUrl;
         this.tags = tags;
+        this.steps = steps;
     }
 }

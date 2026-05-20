@@ -6,15 +6,32 @@ import com.example.demo.training.repository.ScenarioStepRepository;
 import com.example.demo.training.repository.StepResultRepository;
 import com.example.demo.training.repository.TrainingCategoryRepository;
 import com.example.demo.training.repository.TrainingSessionRepository;
+import com.example.demo.users.repository.UserRepository;
+import com.example.demo.users.repository.UserStatisticsRepository;
+import com.example.demo.users.service.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.reactive.function.client.WebClient;
 
-import java.util.ArrayList;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
+
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -24,9 +41,23 @@ public class TrainingService {
     private final ScenarioStepRepository stepRepository;
     private final TrainingSessionRepository sessionRepository;
     private final StepResultRepository stepResultRepository;
+    private final UserRepository userRepository;
+
+    private final UserService userService;
+
+    private final LlmService llmService;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+
+    private final UserStatisticsRepository statisticsRepository;
+
+    private final String uploadPath = System.getProperty("user.dir") + "/uploads/";
+    private final WebClient aiWebClient;
 
     /* 특정 직무 연습 시작 로직 */
-    public TrainingStartResponse startTraining(TrainingStartRequest request, User user) {
+    public TrainingStartResponse startTraining(TrainingStartRequest request, String email) {
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
 
         // 카테고리 존재 여부 확인
         TrainingCategory category = categoryRepository.findById(request.getCategoryId())
@@ -51,13 +82,13 @@ public class TrainingService {
     }
 
     /* 발음 분석 및 다음 단계 진행 로직 */
-    public TrainingStepResponse processStep(TrainingStepRequest request, User user) {
+    public TrainingStepResponse processStep(TrainingStepRequest request, String email) {
 
         // 현재 세션 및 유저 검증
         TrainingSession session = sessionRepository.findById(request.getSessionId())
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 세션입니다."));
 
-        if(!session.getUser().getUserId().equals(user.getUserId())) {
+        if(!session.getUser().getEmail().equals(email)) {
             throw new SecurityException("본인의 연습 세션만 진행할 수 있습니다.");
         }
 
@@ -100,7 +131,7 @@ public class TrainingService {
 
 
     /* 연습 종료 및 결과 저장 로직 */
-    public TrainingResultResponse finishTraining(Long sessionId, User user) {
+    public TrainingResultResponse finishTraining(Long sessionId, String email) {
 
         // 세션 조회 및 검증
         TrainingSession session = sessionRepository.findById(sessionId)
@@ -109,13 +140,29 @@ public class TrainingService {
         // 세션 상태 업데이트 (종료 처리)
         session.completeSession();
 
+        // 상황극 완료 통계 업데이트
+        UserStatistics stats = statisticsRepository.findByUserEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("통계 없음"));
+        stats.incrementRoleplay();
+        statisticsRepository.save(stats);
+
+        // 통계 자동 업데이트
+        userService.increaseRoleplay(email);
+        log.info(">>>> [통계 업데이트 테스트] 유저 {}의 상황극 횟수 증가 완료!", email);
+
         // [실제 데이터 조회] 이 세션에서 진행한 모든 StepResult 가져오기
         List<StepResult> results = stepResultRepository.findAllBySession(session);
 
         // [자동 문구 생성] 성공한 단계의 '미리 정해진 문구'들만 리스트로 만듦
-        List<String> checks = results.stream()
-                .filter(StepResult::isPassed) // 성공한 단계만 필터링
-                .map(res -> res.getStep().getSuccessMessage()) // ScenarioStep에 successMessage 필드가 있어야 함
+        List<StepReviewDto> reviews = results.stream()
+                .map(res -> StepReviewDto.builder()
+                        .stepOrder(res.getStep().getStepOrder())
+                        .situation(res.getStep().getCurrentSituation())
+                        .rawText(res.getRawText())
+                        .refinedText(res.getRefinedText())
+                        .score(res.getScore())
+                        .isPassed(res.isPassed())
+                        .build())
                 .collect(Collectors.toList());
 
         // 평균 점수 계산
@@ -125,11 +172,142 @@ public class TrainingService {
 
         return TrainingResultResponse.builder()
                 .sessionId(session.getId())
-                .feedbackChecklist(checks) // DB 데이터 기반 자동 생성
+                .totalAvgScore((int) avgScore)
+                .stepReviews(reviews)
                 .evaluation(generateTotalEvaluation(avgScore)) // 점수 기반 총평 생성
-                .nextCategoryId(session.getCategory().getId() + 1)
                 .build();
 
+    }
+
+    /* 음성 파일 로컬에 저장 로직 */
+    public File processVoice(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("업로드된 음성 파일이 없습니다.");
+        }
+
+        try {
+            // 저장할 uploads 폴더가 없으면 생성
+            File folder = new File(uploadPath);
+            if (!folder.exists()) {
+                folder.mkdirs();
+            }
+
+            // 고유한 파일명 UUID 생성 (파일 이름 중복 방지)
+            String originalFileName = file.getOriginalFilename();
+            String storeFileName = UUID.randomUUID() + "_" + originalFileName;
+
+            File targetFile = new File(folder, storeFileName);
+            Path targetPath = targetFile.toPath();
+
+            // 파일 저장
+            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+
+            log.info("파일 저장 완료: {}", targetPath);
+
+            return targetFile;
+        } catch (IOException e) {
+            log.error("파일 저장 중 오류 발생: {}", e.getMessage());
+            throw new RuntimeException("음성 파일 저장 실패", e);
+        }
+    }
+
+    /* 저장된 음성 파일명을 전달하여 AI 분석 결과(JSON)를 받아오는 로직 */
+    public String getAiAnalysis(File savedFile) {
+        log.info("AI 서버 분석 요청 시작: {}", savedFile.getName());
+        try {
+            FileSystemResource resource = new FileSystemResource(savedFile);
+
+            MultipartBodyBuilder builder = new MultipartBodyBuilder();
+            builder.part("file", resource);
+
+            MultiValueMap<String, HttpEntity<?>> multipartBody = builder.build();
+
+            return aiWebClient.post()
+                    .uri("/analyze")
+                    .bodyValue(multipartBody)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    //.timeout(Duration.ofMinutes(3))
+                    .block();
+
+        } catch (Exception e) {
+            log.error("AI 서버 통신 중 에러 발생: {}", e.getMessage());
+            return "AI 분석 실패: " + e.getMessage();
+        }
+    }
+
+    /* 실시간 음성 분석 및 전체 사이클 처리 로직 */
+    @Transactional
+    public TrainingStepResponse processFullCycle(MultipartFile audioFile, Long sessionId, String email) {
+
+        // 세션 및 유저 검증
+        TrainingSession session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 세션입니다."));
+
+        if (!session.getUser().getEmail().equals(email)) {
+            throw new SecurityException("본인의 연습 세션만 진행할 수 있습니다.");
+        }
+
+        // 파일 로컬 저장
+        File savedFile = processVoice(audioFile);
+
+        try {
+            // AI 서버 분석 요청
+            String jsonResponse = getAiAnalysis(savedFile);
+            AiAnalysisResponse aiData = objectMapper.readValue(jsonResponse, AiAnalysisResponse.class);
+
+            String rawText = aiData.getRawText();
+            String refinedText = aiData.getRefinedText();
+            ScenarioStep currentStep = session.getCurrentStep();
+
+            int score = calculateSimilarity(currentStep.getHintText(), rawText);
+
+            StepResult result = StepResult.builder()
+                    .session(session)
+                    .step(currentStep)
+                    .rawText(rawText)
+                    .refinedText(refinedText)
+                    .voiceFilePath(savedFile.getPath())
+                    .isPassed(score >= 70)
+                    .score(score)
+                    .build();
+
+            stepResultRepository.save(result);
+
+            // 통계 업데이트
+            UserStatistics stats = statisticsRepository.findByUserEmail(email)
+                    .orElseThrow(() -> new IllegalArgumentException("통계 없음"));
+            stats.addCorrection(score); // 보정 횟수 +1, 강도 누적
+            statisticsRepository.save(stats);
+
+            // 다음 단계 조회 및 세션 업데이트
+            int nextOrder = session.getCurrentStep().getStepOrder() + 1;
+            Optional<ScenarioStep> nextStepOpt = stepRepository.findByCategory_IdAndStepOrder(
+                    session.getCategory().getId(), nextOrder
+            );
+
+            nextStepOpt.ifPresent(session::updateStep);
+
+            return TrainingStepResponse.builder()
+                    .score(score)
+                    .feedback(generateFeedback(score))
+                    .retryScript(currentStep.getRetryScript())
+                    .refinedText(refinedText)
+                    .nextStepOrder(nextStepOpt.map(ScenarioStep::getStepOrder).orElse(null))
+                    .nextSituation(nextStepOpt.map(ScenarioStep::getCurrentSituation).orElse("연습 종료"))
+                    .nextGuestQuestion(nextStepOpt.map(ScenarioStep::getGuestScript).orElse(null))
+                    .nextHintText(nextStepOpt.map(ScenarioStep::getHintText).orElse(null))
+                    .nextMissionText(nextStepOpt.map(ScenarioStep::getMissionText).orElse(null))
+                    .isLast(nextStepOpt.isEmpty())
+                    .build();
+
+        } catch (Exception e) {
+            log.error("AI 분석 결과 처리 실패: {}", e.getMessage());
+            throw new RuntimeException("음성 분석 처리 중 오류가 발생했습니다.");
+        } finally {
+            // 보안 및 용량 관리를 위해 분석 후 임시 파일 삭제 권장
+            if (savedFile.exists()) savedFile.delete();
+        }
     }
 
     /* 발음 유사도 계산 알고리즘 (임시 구현) */

@@ -22,7 +22,10 @@ public class ScenarioStep {
 
     private String currentSituation; // 현재 상황 (예: "#주문 받기", "#기본 응대")
     private String guestScript; // 손님 대사 (예: "아이스아메리카노, 한 잔 주세요"
+
+    @Column(columnDefinition = "TEXT")
     private String hintText; // 힌트보기
+
     private String missionText; // 미션 안내 문구 (예: "손님 주문에 응대해보세요!")
     private String retryScript; // 발음 부정확 시 AI가 다시 물어볼 대사 (예: "잘 못 들었어요. 다시 말씀해 주시겠어요?")
     private String successMessage;  // 예: "주문 응대 성공"
@@ -39,6 +42,13 @@ public class ScenarioStep {
         this.missionText = missionText;
         this.retryScript = retryScript;
         this.successMessage = successMessage;
+    }
+
+    public void setCategory(TrainingCategory category) {
+        this.category = category;
+        if(!category.getSteps().contains(this)) {
+            category.getSteps().add(this);
+        }
     }
 
 }
