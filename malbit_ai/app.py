@@ -12,6 +12,8 @@ from services.meeting_service import summarize_meeting_and_schedule
 from services.speech_service import suggest_speech_by_situation
 from services.calendar_service import sync_schedules_to_backend
 
+from fastapi.concurrency import run_in_threadpool
+
 app = FastAPI(title="Malbit AI Server")
 
 # 전역 변수로 Whisper 파이프라인 관리
@@ -34,14 +36,12 @@ async def root():
 async def analyze_voice(file: UploadFile = File(...)):
     unique_id = uuid.uuid4().hex[:8]
     temp_path = f"temp_{unique_id}_{file.filename}"
+    print(f"unique_id = {unique_id}\n temp_path = {temp_path}")
 
     try:
         with open(temp_path, "wb") as buffer:
             buffer.write(await file.read())
-
-        # remaster_service 호출
-        result = run_remastering(asr_pipe, temp_path)
-
+        result = await run_in_threadpool(run_remastering, asr_pipe, temp_path)
         return {
             "status": "SUCCESS",
             "data": { "log_id": unique_id, **result }

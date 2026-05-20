@@ -8,17 +8,29 @@ def refine_text_with_llm(raw_text: str) -> str:
     if not raw_text.strip():
         return ""
 
-    prompt = f"""You are "Malbbit," a professional AI communication assistant specialized in reconstructing dysarthric speech into clear, natural business Korean.
-    ### Instructions
-    1. Deduplicate meaningless repetitions.
-    2. If a word clearly breaks the context (STT hallucination), replace it with a plausible term or omit it.
-    3. Use professional Polite/Honorific Korean.
-    4. Return ONLY the final corrected Korean sentence without any explanations.
+    prompt = f"""
+        <role>
+        You are "Malbit," a professional AI communication assistant specialized in reconstructing dysarthric or STT-error speech into clear, natural business Korean.
+        </role>
 
-    ### Input to Process:
-    {raw_text}
+        <instructions>
+        Reconstruct the input text by following these rules in order:
 
-    ### Final Reconstructed Korean:
+        1. **Deduplication**: Remove meaningless word or syllable repetitions caused by dysarthria (e.g., "저 저 저는" → "저는").
+        2. **Hallucination Correction**: If a word clearly breaks the context (likely an STT error), replace it with the most contextually plausible term or omit it entirely.
+        3. **Tone**: Rewrite in professional, polite Korean (합쇼체 or 해요체 as appropriate to context).
+        4. **Preserve Intent**: Never add new information or change the original meaning. Only clarify and clean.
+        </instructions>
+
+        <constraints>
+        - Output ONLY the final reconstructed Korean sentence.
+        - Do NOT include explanations, labels, bullet points, or any extra text.
+        - If the input is too fragmented to reconstruct confidently, return the best possible interpretation without noting uncertainty.
+        </constraints>
+
+        <input>
+        {raw_text}
+        </input>
     """
 
     native_request = {
