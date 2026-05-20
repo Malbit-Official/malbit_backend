@@ -3,6 +3,9 @@ package com.example.demo.users.service;
 
 import com.example.demo.entity.User;
 import com.example.demo.users.repository.UserRepository;
+import com.example.demo.entity.DisabilityType;
+import com.example.demo.entity.CognitiveLevel;
+import com.example.demo.entity.JobType;
 import com.example.demo.global.security.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpEntity;
@@ -39,6 +42,9 @@ public class SocialAuthService {
                         .name("Social User")
                         .password("")
                         .registrationId(User.RegistrationId.valueOf(provider.toUpperCase()))
+                        .disabilityType(DisabilityType.LANGUAGE)
+                        .cognitiveLevel(CognitiveLevel.LEVEL_3)
+                        .jobType(JobType.ETC)
                         .build()));
 
         return jwtTokenProvider.createToken(user.getEmail());
@@ -56,8 +62,22 @@ public class SocialAuthService {
         ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
         Map<String, Object> body = response.getBody();
         Map<String, Object> kakaoAccount = (Map<String, Object>) body.get("kakao_account");
-
-        return (String) kakaoAccount.get("email");
+        
+        String email = null;
+        if (kakaoAccount != null) {
+            email = (String) kakaoAccount.get("email");
+        }
+        
+        // Fallback if email is null or user hasn't consented
+        if (email == null) {
+            Object idObj = body.get("id");
+            if (idObj != null) {
+                email = idObj.toString() + "@kakao.local";
+            } else {
+                email = "social" + System.currentTimeMillis() + "@kakao.local";
+            }
+        }
+        return email;
 
     }
 

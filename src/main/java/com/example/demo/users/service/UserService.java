@@ -7,6 +7,9 @@ import com.example.demo.global.infrastructure.FileService;
 import com.example.demo.users.dto.*;
 import com.example.demo.users.repository.UserRepository;
 import com.example.demo.users.repository.UserStatisticsRepository;
+import com.example.demo.entity.DisabilityType;
+import com.example.demo.entity.CognitiveLevel;
+import com.example.demo.entity.JobType;
 import com.example.demo.global.security.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,7 +31,6 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final UserStatisticsRepository statisticsRepository;
 
-
     /* 회원가입 로직 */
     public Long join(UserJoinRequest request) {
         // 이메일 중복 검사
@@ -49,9 +51,15 @@ public class UserService {
                 .cognitiveLevel(request.getCognitiveLevel())
                 .build();
 
-        return userRepository.save(user).getUserId();
-    }
+        User savedUser = userRepository.save(user);
 
+        UserStatistics stats = UserStatistics.builder()
+                .user(savedUser)
+                .build();
+
+        statisticsRepository.save(stats);
+
+        return savedUser.getUserId();    }
 
     /* 로그인 로직 */
     public UserLoginResponse login(String email, String password) {
@@ -83,6 +91,7 @@ public class UserService {
                 .email(user.getEmail())
                 .name(user.getName())
                 .jobType(user.getJobType())
+                .profileImage(user.getProfileImUrl())
                 .build();
     }
 
@@ -120,13 +129,16 @@ public class UserService {
                 .map(entity -> {
                     // 이미 있다면 이름만 업데이트 (선택 사항)
                     entity.updateName(name);
-                    return entity;
+                    return userRepository.save(entity);
                 })
-                .orElseGet (() -> User.builder() // 없으면 새로 생성
+                .orElseGet(() -> User.builder() // 없으면 새로 생성
                         .email(email)
                         .name(name)
-                        .password("SOCIAL_USER")
+                        .password(passwordEncoder.encode("SOCIAL_USER_" + registrationId))
                         .registrationId(registrationId)
+                        .disabilityType(DisabilityType.LANGUAGE)
+                        .cognitiveLevel(CognitiveLevel.LEVEL_3)
+                        .jobType(JobType.ETC)
                         .build());
 
         return userRepository.save(user);
@@ -148,6 +160,14 @@ public class UserService {
         user.updateEmail(newEmail);
     }
 
+    /* 이름 변경 로직 */
+    @Transactional
+    public void updateName(String email, String newName) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        user.updateName(newName);
+    }
+
     /* 프로필 이미지 업데이트 로직 */
     @Transactional
     public void updateProfileImage(String email, String imageUrl) {
@@ -165,8 +185,7 @@ public class UserService {
         user.updateEnvironment(
                 request.getJobType(),
                 request.getDisabilityType(),
-                request.getCognitiveLevel()
-        );
+                request.getCognitiveLevel());
     }
 
     /* 음성 재등록 로직 */
@@ -244,7 +263,7 @@ public class UserService {
         user.updateVoiceFile(samplePath);
     }
 
-    /* 사용자 디스플레이 설정 로직*/
+    /* 사용자 디스플레이 설정 로직 */
     @Transactional
     public void updateDisplaySettings(String email, DisplaySettingsRequest request) {
         User user = userRepository.findByEmail(email)
@@ -253,24 +272,57 @@ public class UserService {
         user.updateDisplaySettings(request.getFontSize(), request.getIsLargeButton());
     }
 
+    /* [공통 메서드] 통계 데이터가 없으면 자동 생성 */
+    private UserStatistics getOrCreateStatistics(String email) {
+        return statisticsRepository.findByUserEmail(email)
+                .orElseGet(() -> {
+                    User user = userRepository.findByEmail(email)
+                            .orElseThrow(() -> new IllegalArgumentException("해당 유저가 없습니다."));
+
+                    return statisticsRepository.save(UserStatistics.builder()
+                            .user(user)
+                            .totalCorrectionCount(0)
+                            .averageCorrectionIntensity(0)
+                            .completedRoleplays(0)
+                            .generatedSummaries(0)
+                            .build());
+                });
+    }
+
     /* 통계 데이터 조회 로직 */
     @Transactional(readOnly = true)
     public UserStatisticsResponse getStatistics(String email) {
-        UserStatistics stats = statisticsRepository.findByUserEmail(email)
-                .orElseGet(() -> UserStatistics.builder()
-                        .totalCorrectionCount(0)
-                        .averageCorrectionIntensity(0)
-                        .completedRoleplays(0)
-                        .generatedSummaries(0)
-                        .build());
 
-        return UserStatisticsResponse.builder()
-                .totalCorrectionCount(stats.getTotalCorrectionCount())
-                .averageCorrectionIntensity(stats.getAverageCorrectionIntensity())
-                .completedRoleplays(stats.getCompletedRoleplays())
-                .generatedSummaries(stats.getGeneratedSummaries())
-                .build();
+        // 중복 로직 제거하고 공통 메서드 호출
+        UserStatistics stats = getOrCreateStatistics(email);
+        return UserStatisticsResponse.from(stats);
     }
+
+    /* 상황극 증가 로직 */
+    @Transactional
+    public void increaseRoleplay(String email) {
+
+        UserStatistics stats = getOrCreateStatistics(email);
+        stats.incrementRoleplay();
+    }
+
+    /* 문장 보정 성공 시 (자동) */
+    @Transactional
+    public void addCorrection(String email, int intensity) {
+
+        // 중복 로직 제거하고 공통 메서드 호출
+        UserStatistics stats = getOrCreateStatistics(email);
+        stats.addCorrection(intensity);
+    }
+
+    /* 회의록 요약 완료 시 (자동) */
+    @Transactional
+    public void increaseSummary(String email) {
+
+        UserStatistics stats = getOrCreateStatistics(email);
+        stats.incrementSummary();
+    }
+
 
     /* 로그아웃 로직 */
     public void logout(String email) {
@@ -288,13 +340,15 @@ public class UserService {
         }
 
         // 물리 파일들 삭제 (기존 로직 동일)
-        if (user.getProfileImUrl() != null) deletePhysicalFile(user.getProfileImUrl());
-        if (user.getVoiceFileUrl() != null) deletePhysicalFile(user.getVoiceFileUrl());
-        if (user.getVoiceSampleUrl() != null) deletePhysicalFile(user.getVoiceSampleUrl());
+        if (user.getProfileImUrl() != null)
+            deletePhysicalFile(user.getProfileImUrl());
+        if (user.getVoiceFileUrl() != null)
+            deletePhysicalFile(user.getVoiceFileUrl());
+        if (user.getVoiceSampleUrl() != null)
+            deletePhysicalFile(user.getVoiceSampleUrl());
 
         // DB에서 유저 삭제
         userRepository.delete(user);
     }
+
 }
-
-

@@ -22,7 +22,8 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private final JwtTokenProvider jwtTokenProvider;
 
     @Override
-    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException {
+    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
+            Authentication authentication) throws IOException {
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
         String email = null;
 
@@ -38,6 +39,10 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String accessToken = jwtTokenProvider.createToken(email);
 
         // 프론트에서 리다이렉트 (쿼리 피라미터에 토큰을 실어서 보냄)
+
+        // 테스트용
+        // String targetUrl =
+        // UriComponentsBuilder.fromUriString("http://localhost:8080/api/users/me")
         String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:3000/oauth2/redirect")
                 .queryParam("accessToken", accessToken)
                 .build().toUriString();
