@@ -15,33 +15,34 @@ def summarize_meeting_and_schedule(audio_path: str, current_date: str, asr_pipe)
     if not raw_text.strip():
         return {
             "raw_text": "",
-            "summary_text": "분석할 업무 내용이 없습니다.",
+            "summary": "분석할 업무 내용이 없습니다.",
             "checklists": [],
             "schedules": []
         }
 
     # LLM 프롬프트 설정 (말빛 스마트 워크플레이스 어시스턴트 페르소나)
     prompt = f"""
+    <role>
     You are the "Malbit Smart Workplace Assistant," specialized in supporting workers with speech or language impairments.
-    Analyze the provided transcript from a workplace setting and extract structured tasks.
+    You analyze conversation transcripts and extract structured task information.
+    </role>
 
-    ### Core Objectives:
-    1. **Contextual Summary**: Provide a 2-3 sentence summary in Korean. Start with the most urgent task.
-    2. **Checklist Generation**: Extract small, immediate sub-tasks (e.g., "우유 유통기한 확인").
-    3. **Task Scheduling**: Identify tasks with specific or implied deadlines.
+    <instructions>
+    Analyze the [Transcript] below and perform the following tasks:
+    1. **Summary (summary_text)**: 2-3 sentence Korean summary. Start with the most urgent task.
+    2. **Checklist (checklists)**: Extract immediate action items (e.g., "우유 유통기한 확인").
+    3. **Schedule List (schedules)**: Extract tasks with deadlines. 
+       - Convert relative time to absolute using Reference Date: {current_date}
+    </instructions>
 
-    ### Constraints:
-    - Language: Korean (Polite/Natural)
-    - Current Reference Date: {current_date}
-    - Convert relative time (e.g., "내일", "3시") to absolute "YYYY-MM-DD" and "HH:MM".
-
-    ### JSON Schema:
+    <output_format>
+    Output ONLY valid JSON. Do not include any explanations or markdown fences.
     {{
-      "summary_text": "요약 내용",
-      "checklists": ["할 일 1", "할 일 2"],
+      "summary_text": "string",
+      "checklists": ["string"],
       "schedules": [
         {{
-          "title": "일정 제목",
+          "title": "string",
           "category": "업무 | 미팅 | 휴식 | 개인",
           "date": "YYYY-MM-DD",
           "time": "HH:MM",
@@ -49,11 +50,11 @@ def summarize_meeting_and_schedule(audio_path: str, current_date: str, asr_pipe)
         }}
       ]
     }}
+    </output_format>
 
-    ### Transcript:
+    <transcript>
     {raw_text}
-
-    ### Output (JSON ONLY):
+    </transcript>
     """
 
     native_request = {
@@ -75,9 +76,17 @@ def summarize_meeting_and_schedule(audio_path: str, current_date: str, asr_pipe)
         response_body = json.loads(response["body"].read())
         raw_output = response_body["content"][0]["text"].strip()
 
-        # JSON 정제 로직
-        if "```json" in raw_output:
-            raw_output = re.search(r"```json\s*(.*?)\s*```", raw_output, re.DOTALL).group(1)
+        # JSON 정제 로직: 백틱 제거 및 JSON 블록만 추출
+        if "```" in raw_output:
+            # ```json ... ``` 또는 ``` ... ``` 형태 처리
+            match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw_output, re.DOTALL)
+            if match:
+                raw_output = match.group(1)
+        else:
+            # 백틱이 없는 경우 { } 블록만 추출 시도
+            match = re.search(r"(\{.*\})", raw_output, re.DOTALL)
+            if match:
+                raw_output = match.group(1)
 
         analysis_result = json.loads(raw_output)
 
@@ -93,7 +102,7 @@ def summarize_meeting_and_schedule(audio_path: str, current_date: str, asr_pipe)
         print(f" [Meeting Service Error] {e}")
         return {
             "raw_text": raw_text,
-            "summary": "요약 중 오류가 발생했습니다.",
+            "summary": "요약 중 서버 오작동이 발생했습니다.",
             "checklists": [],
             "schedules": []
-        }
+        }

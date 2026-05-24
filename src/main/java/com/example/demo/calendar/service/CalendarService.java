@@ -154,6 +154,9 @@ public class CalendarService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 일정입니다. [ID: " + taskId + "]"));
 
         task.toggleCompletion();
+
+        taskRepository.saveAndFlush(task);
+
         return task.isCompleted();
     }
 
