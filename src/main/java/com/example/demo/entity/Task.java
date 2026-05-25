@@ -37,6 +37,7 @@ public class Task {
 
     private LocalDateTime endAt; // 업무 마감일
 
+    @Builder.Default
     @Column(name = "is_completed", nullable = false)
     private boolean completed = false; // 완료여부
 
