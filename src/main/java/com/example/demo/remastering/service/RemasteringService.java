@@ -78,7 +78,7 @@ public class RemasteringService {
     }
 
     /**
-     * 회의 분석 (/api/analyze-meeting 연동) - 오늘 연동을 성공시킨 소중한 메인 핵심 로직!
+     * 회의 분석 (/api/analyze-meeting 연동) 
      */
     public Mono<MeetingAnalysisResponse> analyzeMeeting(String email, MultipartFile audioFile) {
         long startTime = System.currentTimeMillis();
