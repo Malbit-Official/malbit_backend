@@ -105,4 +105,4 @@ def summarize_meeting_and_schedule(audio_path: str, current_date: str, asr_pipe)
             "summary": "요약 중 서버 오작동이 발생했습니다.",
             "checklists": [],
             "schedules": []
-        }
+        }
