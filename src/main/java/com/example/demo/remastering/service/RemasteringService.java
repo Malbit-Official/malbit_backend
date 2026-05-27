@@ -7,6 +7,7 @@ import com.example.demo.log.repository.LogRepository;
 import com.example.demo.remastering.dto.MeetingAiServerResponseDto;
 import com.example.demo.remastering.dto.MeetingAnalysisResponse;
 import com.example.demo.remastering.dto.RemasteringLogResponse;
+import com.example.demo.calendar.repository.TaskRepository;
 import com.example.demo.users.repository.UserRepository;
 import com.example.demo.users.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,8 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import java.util.Map;
+
 @Service
 @RequiredArgsConstructor
 public class RemasteringService {
@@ -28,6 +31,7 @@ public class RemasteringService {
     private final LogRepository logRepository;
     private final LogDetailRepository logDetailRepository;
     private final UserRepository userRepository;
+    private final TaskRepository taskRepository;
 
     /**
      * 문장 리마스터링 (/api/analyze 연동)
@@ -52,15 +56,24 @@ public class RemasteringService {
             .contentType(MediaType.MULTIPART_FORM_DATA)
             .body(BodyInserters.fromMultipartData(bodyBuilder.build()))
             .retrieve()
-            .bodyToMono(MeetingAiServerResponseDto.class) 
+            .bodyToMono(Map.class) 
             .map(res -> {
+
                 long latency = System.currentTimeMillis() - startTime;
+                
+                Map<String, Object> dataFields = (Map<String, Object>) res.get("data");
                 
                 String raw = "인식된 내용 없음";
                 String refined = "리마스터링 완료";
 
+                if (dataFields != null) {
+                    raw = dataFields.get("raw") != null ? dataFields.get("raw").toString() : "인식된 내용 없음";
+                    refined = dataFields.get("refined") != null ? dataFields.get("refined").toString() : raw;
+                }
+
                 userService.addCorrection(email, 50);
 
+                // DB 저장
                 ConversationLog savedLog = conversationService.saveResult(
                         email,
                         raw,
@@ -70,11 +83,12 @@ public class RemasteringService {
 
                 return new RemasteringLogResponse(
                         savedLog.getLogId(),
-                        savedLog.getSttOrigin(),
-                        savedLog.getRefinedText(),
+                        raw,      // 쳇바퀴 돌지 않고 진짜 데이터 다이렉트 주입!
+                        refined,
                         (int) latency
                 );
             });
+
     }
 
     /**
@@ -114,10 +128,9 @@ public class RemasteringService {
 
                     Log savedLog = logRepository.save(log);
 
-                    // LogDetail 저장 (요약, 결정사항, 할 일)
                     java.util.List<LogDetail> details = new java.util.ArrayList<>();
 
-                    // 요약
+                    // 요약 저장
                     if (data.getSummary() != null && !data.getSummary().isBlank()) {
                         details.add(LogDetail.builder()
                                 .log(savedLog)
@@ -126,7 +139,7 @@ public class RemasteringService {
                                 .build());
                     }
 
-                    // 결정사항 (checklists)
+                    // 결정사항 저장
                     if (data.getChecklists() != null) {
                         for (String item : data.getChecklists()) {
                             details.add(LogDetail.builder()
@@ -137,15 +150,27 @@ public class RemasteringService {
                         }
                     }
 
-                    // 할 일 (schedules)
+                    // 할 일 저장 및 캘린더에 연동
                     if (data.getSchedules() != null) {
                         for (MeetingAiServerResponseDto.ScheduleDto schedule : data.getSchedules()) {
+                            
+                            // 회의록 상세 페이지 출력용 저장
                             details.add(LogDetail.builder()
                                     .log(savedLog)
                                     .content("[" + schedule.getCategory() + "] " + schedule.getTitle() + " (" + schedule.getTime() + ")")
                                     .type(DetailType.TODO)
                                     .assignee(schedule.getCategory())
                                     .build());
+
+                            // 캘린더 연동용 Task 저장
+                            Task calendarTask = Task.builder()
+                                    .user(user)
+                                    .content("[업무] " + schedule.getTitle())
+                                    .startAt(java.time.LocalDateTime.now())
+                                    .endAt(java.time.LocalDateTime.now().plusHours(1))
+                                    .build();
+
+                                taskRepository.save(calendarTask);
                         }
                     }
 

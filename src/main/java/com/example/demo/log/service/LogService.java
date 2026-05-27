@@ -81,8 +81,7 @@ public class LogService {
 
         Log savedLog = logRepository.save(log);
 
-        // AI 요약 실행 (실제로는 여기서 외부 AI API를 호출
-        // 지금은 테스트를 위해 임시 메서드로 처리
+
         generateAiDetails(savedLog, request.getRawContent());
 
         return getLogDetail(savedLog.getId());
@@ -90,8 +89,6 @@ public class LogService {
 
     private void generateAiDetails(Log log, String rawContent) {
 
-        // TODO: 나중에 여기서 OpenAI나 Clova 등의 API를 호출하여 결과를 파싱
-        // 현재는 피그마 데이터 기반으로 샘플 데이터를 저장하는 로직
 
         List<LogDetail> details = List.of(
                 LogDetail.builder().log(log).content("메인 페이지 UI 완료").type(DetailType.SUMMARY).assignee(null).build(),
@@ -109,6 +106,6 @@ public class LogService {
         Log log = logRepository.findById(logId)
                 .orElseThrow(() -> new IllegalArgumentException("기록을 찾을 수 없습니다."));
 
-        log.updateMemo(memo); // Dirty Checking 으로 자동 업데이트
+        log.updateMemo(memo); 
     }
 }
