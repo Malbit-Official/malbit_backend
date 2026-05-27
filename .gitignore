@@ -45,3 +45,6 @@ uploads/
 **/venv/
 
 deploy.sh
+
+nohup_old.out
+malbit_ai copy/
