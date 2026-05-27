@@ -46,20 +46,31 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 
         if ("kakao".equals(registrationId)) {
             Map<String, Object> kakaoAccount = (Map<String, Object>) attributes.get("kakao_account");
-            Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
-
-            if (kakaoAccount.get("email") != null) {
+            
+            // 이메일 추출 방어 로직 안전화
+            if (kakaoAccount != null && kakaoAccount.get("email") != null) {
                 email = (String) kakaoAccount.get("email");
             } else {
                 Object idObj = attributes.get("id");
-                email = (idObj != null ? idObj.toString() : "social" + System.currentTimeMillis()) + "@kakao.local";
+                email = (idObj != null ? idObj.toString() : "social_" + System.currentTimeMillis()) + "@kakao.local";
             }
 
-            if (profile != null && profile.get("nickname") != null) {
-                name = (String) profile.get("nickname");
+            // 이름/닉네임 추출 안전화 
+            if (kakaoAccount != null) {
+                Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
+                
+                if (profile != null && profile.get("nickname") != null) {
+                    name = (String) profile.get("nickname");
+                } else if (kakaoAccount.get("name") != null) {
+                    // 카카오 비즈니스 채널 설정에 따라 진짜 이름이 넘어오는 경우 대비
+                    name = (String) kakaoAccount.get("name"); 
+                } else {
+                    name = "Kakao User";
+                }
             } else {
                 name = "Kakao User";
             }
+            
         } else if ("google".equals(registrationId)) {
             email = (String) attributes.get("email");
             name = (String) attributes.get("name");
