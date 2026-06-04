@@ -4,7 +4,6 @@ import com.example.demo.calendar.dto.CalendarListResponse;
 import com.example.demo.calendar.dto.TaskManualRequest;
 import com.example.demo.calendar.dto.TaskUpdateRequest;
 import com.example.demo.calendar.dto.UpcomingTasksResponse;
-import com.example.demo.calendar.dto.TaskCompletionRequest;
 import com.example.demo.calendar.service.CalendarService;
 import com.example.demo.global.common.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -78,12 +77,10 @@ public class CalendarController {
 
     /* 일정 완료 여부 토글 API (통일된 버전) */
     @PatchMapping("/{taskId}/completion")
-    public ResponseEntity<ApiResponse<Boolean>> toggleTaskCompletion(
-        @PathVariable Long taskId,
-        @RequestBody TaskCompletionRequest request) {
+    public ResponseEntity<ApiResponse<Boolean>> toggleTaskCompletion(@PathVariable Long taskId) {
 
         // 서비스에서 toggle 로직 호출 (DB 업데이트)
-        boolean updatedStatus = calendarService.updateTaskCompletion(taskId, request.isCompleted());
+        boolean updatedStatus = calendarService.toggleTaskCompletion(taskId);
 
         return ResponseEntity.ok(ApiResponse.success(
                 "일정 상태가 " + (updatedStatus ? "완료" : "미완료") + "로 변경되었습니다.",

@@ -11,12 +11,11 @@ class Config:
     REGION_NAME = "ap-northeast-2"
     LLM_MODEL = os.getenv("LLM_MODEL", "anthropic.claude-3-haiku-20240307-v1:0")
 
-    # Whisper 모델 설정
-    #DEFAULT_MODEL_PATH = "tepo6640/malbit_ai"
-    #SUB_FOLDER = "model/whisper-dysarthria-ko/checkpoint-6825"
-
-    DEFAULT_MODEL_PATH = "openai/whisper-medium"
+    DEFAULT_MODEL_PATH = os.getenv("WHISPER_MODEL_PATH", "./model_ct2")
     SUB_FOLDER = ""
 
-    # 백엔드(Java) 연동 설정
+    ASR_DEVICE = os.getenv("ASR_DEVICE", "cpu")
+    ASR_COMPUTE_TYPE = os.getenv("ASR_COMPUTE_TYPE", "int8")
+    ASR_CPU_THREADS = int(os.getenv("ASR_CPU_THREADS", "4"))
+
     BACKEND_URL = os.getenv("BACKEND_URL", "http://3.37.239.105:8080")

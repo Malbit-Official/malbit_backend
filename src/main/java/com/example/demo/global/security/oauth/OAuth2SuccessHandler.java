@@ -27,24 +27,23 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
         String email = null;
 
-        // 카카오 이메일 동의 거부 방어
+        // 만약 Attributes에 직접 접근한다면 안전한 추출 로직:
         if (oAuth2User.getAttributes().containsKey("email")) {
-            email = (String) oAuth2User.getAttributes().get("email"); // 구글
+            email = (String) oAuth2User.getAttributes().get("email"); // 구글 등
         } else if (oAuth2User.getAttributes().containsKey("kakao_account")) {
             Map<String, Object> kakaoAccount = (Map<String, Object>) oAuth2User.getAttributes().get("kakao_account");
-            if (kakaoAccount != null && kakaoAccount.get("email") != null) {
-                email = (String) kakaoAccount.get("email"); // 카카오 정상 이메일
-            } else {
-                // 이메일이 없을 경우 카카오 고유 ID를 가져와 고유 문자열 재조립
-                Object idObj = oAuth2User.getAttributes().get("id");
-                email = (idObj != null ? idObj.toString() : "social_" + System.currentTimeMillis()) + "@kakao.local";
-            }
+            email = (String) kakaoAccount.get("email"); // 카카오
         }
 
         // JWT 토큰 생성
         String accessToken = jwtTokenProvider.createToken(email);
 
-        String targetUrl = UriComponentsBuilder.fromUriString("http://3.37.239.105:8080/api/users/me")
+        // 프론트에서 리다이렉트 (쿼리 피라미터에 토큰을 실어서 보냄)
+
+        // 테스트용
+        // String targetUrl =
+        // UriComponentsBuilder.fromUriString("http://localhost:8080/api/users/me")
+        String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:3000/oauth2/redirect")
                 .queryParam("accessToken", accessToken)
                 .build().toUriString();
 

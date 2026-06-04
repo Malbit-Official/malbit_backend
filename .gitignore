@@ -46,5 +46,4 @@ uploads/
 
 deploy.sh
 
-nohup_old.out
-malbit_ai copy/
+**/model_ct2/

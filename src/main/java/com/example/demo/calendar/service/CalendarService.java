@@ -30,6 +30,7 @@ public class CalendarService {
     /* 일정 수동 등록 로직 */
     @Transactional
     public Long createManualTask(String email, TaskManualRequest request) {
+
         // 유저 조회
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
@@ -49,8 +50,9 @@ public class CalendarService {
     }
 
     /* 월간/주간 일정 조회 로직 */
-    @Transactional(readOnly = true)
+    @Transactional (readOnly = true)
     public List<CalendarListResponse> getSchedules(String email, String queryDate) {
+
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
 
@@ -85,6 +87,7 @@ public class CalendarService {
     /* 일정 상세 수정 로직 */
     @Transactional
     public Long updateTask(Long taskId, TaskUpdateRequest request) {
+
         // 수정할 일정 조회
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 일정입니다. [ID: " + taskId + "]"));
@@ -103,6 +106,7 @@ public class CalendarService {
     /* 일정 삭제 로직 */
     @Transactional
     public void deleteTask(Long taskId) {
+
         // 삭제 대상 존재 여부 확인 후 삭제
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 일정입니다. [ID: " + taskId + "]"));
@@ -113,6 +117,7 @@ public class CalendarService {
     /* 다가오는 일정 알림 조회 로직 */
     @Transactional
     public UpcomingTasksResponse getUpcomingTasks(String email) {
+
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
 
@@ -142,21 +147,19 @@ public class CalendarService {
                 .build();
     }
 
-    /* 일정 완료 여부 상태 지정 로직 */
+    /* 일정 완료 여부 토글 로직 */
     @Transactional
-    public boolean updateTaskCompletion(Long taskId, boolean isCompleted) {
+    public boolean toggleTaskCompletion(Long taskId) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 일정입니다. [ID: " + taskId + "]"));
 
-        task.updateCompletion(isCompleted);
-
-        taskRepository.saveAndFlush(task);
-
+        task.toggleCompletion();
         return task.isCompleted();
     }
 
     // 남은 시간을 "0시간 0분" 형태로 포맷팅하는 헬퍼 메서드
     private String formatRemainingTime(LocalDateTime now, LocalDateTime startAt) {
+
         Duration duration = Duration.between(now, startAt);
         long days = duration.toDays();
         long hours = duration.toHours();
