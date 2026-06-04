@@ -45,3 +45,5 @@ uploads/
 **/venv/
 
 deploy.sh
+
+**/model_ct2/
