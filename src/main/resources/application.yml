@@ -1,0 +1,86 @@
+spring:
+  main:
+    allow-circular-references: true
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+  mvc:
+    async:
+      request-timeout: 300000
+
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-time: 86400000
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    protocol: smtp
+    properties:
+      sender-name: ${MAIL_SENDER_NAME}
+      mail:
+        smtp:
+          auth: true
+          timeout: 5000
+          starttls:
+            enable: true
+            required: true
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+  sql:
+    init:
+      mode: always
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: profile,email
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
+            redirect-uri: ${KAKAO_REDIRECT_URI:http://3.37.239.105/login/oauth2/code/kakao}
+            client-name: Kakao
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+
+# AI 서버 설정 (LlmService에서 사용)
+ai:
+  server:
+    url: http://malbit-ai:5000
+    # url: http://localhost:5000
+
+# 로깅 설정 (최상위 계층)
+logging:
+  level:
+    root: INFO
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+    com.example.demo: DEBUG

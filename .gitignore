@@ -35,3 +35,15 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Custom Secrets ###
+.env
+.env.local
+
+uploads/
+
+**/venv/
+
+deploy.sh
+
+**/model_ct2/
